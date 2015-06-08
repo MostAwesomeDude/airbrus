@@ -2,6 +2,7 @@ def [=> strToInt] | _ := import("lib/atoi")
 def [=> makeIRCClient, => connectIRCClient] := import("lib/irc/client",
     [=> Timer])
 def [=> elementsOf] | _ := import("fun/elements")
+def [=> makeMonteParser] | _ := import("lib/parsers/monte")
 
 def nick :Str := "airbrus"
 
@@ -28,8 +29,22 @@ object handler:
                 traceln(`Unknown CTCP $message`)
 
     to privmsg(client, user, channel, message):
-        traceln("privmsg", client, user, channel, message)
-        if (message =~ `$nick: @action`):
+        if (message =~ `!@action @text`):
+            switch (action):
+                match =="parse":
+                    def parser := makeMonteParser()
+                    parser.feedMany(text)
+                    if (parser.failed()):
+                        def failure := parser.getFailure()
+                        client.say(channel, `Parse failure: $failure`)
+                    else:
+                        def result := parser.results()[0]
+                        client.say(channel, `$result`)
+
+                match _:
+                    pass
+
+        else if (message =~ `$nick: @action`):
             switch (action):
                 match `join @newChannel`:
                     client.say(channel, "Okay, joining " + newChannel)
@@ -48,8 +63,7 @@ object handler:
 
                 match `list @otherChannel`:
                     escape ej:
-                        def users := [k
-                            for k => _ in client.getUsers(otherChannel, ej)]
+                        def users := [for k => _ in (client.getUsers(otherChannel, ej)) k]
                         client.say(channel, " ".join(users))
                     catch _:
                         client.say(channel, `I can't see into $otherChannel`)
