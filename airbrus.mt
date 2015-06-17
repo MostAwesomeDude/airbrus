@@ -54,6 +54,21 @@ object handler:
                 for line in `$problem`.split("\n"):
                     client.say(channel, line)
 
+        else if (message =~ `!@action @text`):
+            switch (action):
+                match =="parse":
+                    def parser := makeMonteParser()
+                    parser.feedMany(text)
+                    if (parser.failed()):
+                        def failure := parser.getFailure()
+                        client.say(channel, `Parse failure: $failure`)
+                    else:
+                        def result := parser.results()[0]
+                        client.say(channel, `$result`)
+
+                match _:
+                    pass
+
         else if (message =~ `$nick: @action`):
             switch (action):
                 match `join @newChannel`:
