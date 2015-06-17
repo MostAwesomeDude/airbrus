@@ -2,9 +2,25 @@ def [=> strToInt] | _ := import("lib/atoi")
 def [=> makeIRCClient, => connectIRCClient] := import("lib/irc/client",
     [=> Timer])
 def [=> elementsOf] | _ := import("fun/elements")
-def [=> makeMonteParser] | _ := import("lib/parsers/monte")
 
 def nick :Str := "airbrus"
+
+def environment := [
+    => null, => true, => false,
+    => __makeList, __makeOrderedSpace, => __makeString, => __equalizer,
+    => __comparer,
+    => __accumulateList, => __accumulateMap,
+    => Any, => Bool, => Char, => DeepFrozen, => Double, => Empty, => Int,
+    => List, => Map, => NullOk, => Same, => Set, => Str, => SubrangeGuard,
+    => Void,
+    => __mapEmpty, => __mapExtract,
+    => __booleanFlow, => __iterWhile, => __validateFor,
+    => __switchFailed, => __makeVerbFacet,
+    => __suchThat, => __matchSame, => __bind, => __quasiMatcher,
+    # Superpowers. Things we don't want to include:
+    # * import
+    => M, => simple__quasiParser, => throw,
+]
 
 object handler:
     to getNick():
@@ -29,20 +45,14 @@ object handler:
                 traceln(`Unknown CTCP $message`)
 
     to privmsg(client, user, channel, message):
-        if (message =~ `!@action @text`):
-            switch (action):
-                match =="parse":
-                    def parser := makeMonteParser()
-                    parser.feedMany(text)
-                    if (parser.failed()):
-                        def failure := parser.getFailure()
-                        client.say(channel, `Parse failure: $failure`)
-                    else:
-                        def result := parser.results()[0]
-                        client.say(channel, `$result`)
-
-                match _:
-                    pass
+        if (message =~ `> @text`):
+            try:
+                def result := eval(text, environment)
+                for line in `$result`.split("\n"):
+                    client.say(channel, line)
+            catch problem:
+                for line in `$problem`.split("\n"):
+                    client.say(channel, line)
 
         else if (message =~ `$nick: @action`):
             switch (action):
