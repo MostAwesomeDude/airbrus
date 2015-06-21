@@ -51,7 +51,7 @@ object handler:
                 def result := eval(text, environment)
                 for line in `$result`.split("\n"):
                     client.say(channel, line)
-            catch problem:
+            catch via (unsealException) problem:
                 for line in `$problem`.split("\n"):
                     client.say(channel, line)
 
