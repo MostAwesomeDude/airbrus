@@ -2,19 +2,20 @@ def [=> strToInt] | _ := import("lib/atoi")
 def [=> makeIRCClient, => connectIRCClient] := import("lib/irc/client",
     [=> Timer])
 def [=> elementsOf] | _ := import("fun/elements")
+def [=> makeMonteParser] | _ := import("lib/parsers/monte")
 
 def nick :Str := "airbrus"
 
 def environment := [
-    => null, => true, => false,
-    => __makeList, __makeOrderedSpace, => __makeString, => __equalizer,
+    => null, => true, => false, => Infinity, => NaN,
+    => __makeList, => __makeOrderedSpace, => __makeString, => __equalizer,
     => __comparer,
     => __accumulateList, => __accumulateMap,
     => Any, => Bool, => Char, => DeepFrozen, => Double, => Empty, => Int,
     => List, => Map, => NullOk, => Same, => Set, => Str, => SubrangeGuard,
     => Void,
-    => __mapEmpty, => __mapExtract,
-    => __booleanFlow, => __iterWhile, => __validateFor,
+    => __splitList, => __mapEmpty, => __mapExtract,
+    => __booleanFlow, => __iterWhile, => __validateFor, => __loop,
     => __switchFailed, => __makeVerbFacet,
     => __suchThat, => __matchSame, => __bind, => __quasiMatcher,
     # Superpowers. Things we don't want to include:
