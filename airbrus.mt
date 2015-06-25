@@ -11,6 +11,7 @@ def environment := [
     => __makeList, => __makeOrderedSpace, => __makeString, => __equalizer,
     => __comparer,
     => __accumulateList, => __accumulateMap,
+    => __slotToBinding,
     => Any, => Bool, => Char, => DeepFrozen, => Double, => Empty, => Int,
     => List, => Map, => NullOk, => Same, => Set, => Str, => SubrangeGuard,
     => Void,
@@ -18,9 +19,9 @@ def environment := [
     => __booleanFlow, => __iterWhile, => __validateFor, => __loop,
     => __switchFailed, => __makeVerbFacet,
     => __suchThat, => __matchSame, => __bind, => __quasiMatcher,
-    # Superpowers. Things we don't want to include:
-    # * import
-    => M, => simple__quasiParser, => throw,
+    # Superpowers.
+    => M, => Ref, => eval, => help, => import, => m__quasiParser,
+    => simple__quasiParser, => term__quasiParser, => throw,
 ]
 
 object handler:
@@ -65,12 +66,13 @@ object handler:
                         client.say(channel, `Parse failure: $failure`)
                     else:
                         def result := parser.results()[0]
-                        client.say(channel, `$result`)
+                        for line in `$result`.split("\n"):
+                            client.say(channel, line)
 
                 match _:
                     pass
 
-        else if (message =~ `$nick: @action`):
+        else if (message =~ `$nick: @action` ? (user.getNick() == "simpson")):
             switch (action):
                 match `join @newChannel`:
                     client.say(channel, "Okay, joining " + newChannel)
