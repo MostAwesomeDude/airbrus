@@ -8,8 +8,8 @@ def nick :Str := "airbrus"
 
 def environment := [
     => null, => true, => false, => Infinity, => NaN,
-    => __makeList, => __makeOrderedSpace, => __makeString, => __equalizer,
-    => __comparer,
+    => __makeList, => __makeMap, => __makeOrderedSpace, => __makeString,
+    => __equalizer, => __comparer,
     => __accumulateList, => __accumulateMap,
     => __slotToBinding,
     => Any, => Bool, => Char, => DeepFrozen, => Double, => Empty, => Int,
@@ -23,6 +23,13 @@ def environment := [
     => M, => Ref, => eval, => help, => import, => m__quasiParser,
     => simple__quasiParser, => term__quasiParser, => throw,
 ]
+
+def performEval(text):
+    try:
+        def result := eval(text, environment)
+        return `$result`
+    catch via (unsealException) [problem, _]:
+        return `$problem`
 
 object handler:
     to getNick():
@@ -48,13 +55,9 @@ object handler:
 
     to privmsg(client, user, channel, message):
         if (message =~ `> @text`):
-            try:
-                def result := eval(text, environment)
-                for line in `$result`.split("\n"):
-                    client.say(channel, line)
-            catch via (unsealException) problem:
-                for line in `$problem`.split("\n"):
-                    client.say(channel, line)
+            def response := performEval(text)
+            for line in response.split("\n"):
+                client.say(channel, line)
 
         else if (message =~ `!@action @text`):
             switch (action):
