@@ -4,6 +4,20 @@ def [=> makeIRCClient, => connectIRCClient] := import("lib/irc/client",
 def [=> elementsOf] | _ := import("fun/elements")
 def [=> makeMonteParser] | _ := import("lib/parsers/monte")
 
+def webStarter():
+    def [=> makeHTTPEndpoint] | _ := import("lib/http/server")
+    def [
+        => makeDebugResource,
+        => makeResourceApp,
+    ] | _ := import("lib/http/resource")
+    def root := makeDebugResource(currentRuntime)
+    def app := makeResourceApp(root)
+    def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
+    endpoint.listen(app)
+
+def webVat := currentVat.sprout(`HTTP server`)
+webVat.seed(webStarter)
+
 def nick :Str := "airbrus"
 
 def environment := [
@@ -62,7 +76,7 @@ object handler:
         else if (message =~ `!@action @text`):
             switch (action):
                 match =="parse":
-                    def parser := makeMonteParser()
+                    def parser := makeMonteParser("<irc>")
                     parser.feedMany(text)
                     if (parser.failed()):
                         def failure := parser.getFailure()
