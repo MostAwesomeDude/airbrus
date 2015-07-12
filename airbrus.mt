@@ -22,17 +22,19 @@ def nick :Str := "airbrus"
 
 def environment := [
     => null, => true, => false, => Infinity, => NaN,
-    => __makeList, => __makeMap, => __makeOrderedSpace, => __makeString,
+    => __makeList, => __makeMap, => __makeMessageDesc, => __makeOrderedSpace,
+    => __makeParamDesc, => __makeProtocolDesc, => __makeString,
     => __equalizer, => __comparer,
     => __accumulateList, => __accumulateMap,
     => __slotToBinding,
     => Any, => Bool, => Char, => DeepFrozen, => Double, => Empty, => Int,
-    => List, => Map, => NullOk, => Same, => Set, => Str, => SubrangeGuard,
-    => Void,
+    => List, => Map, => NullOk, => Same, => Selfless, => Set, => Str,
+    => SubrangeGuard, => Void,
     => __splitList, => __mapEmpty, => __mapExtract,
     => __booleanFlow, => __iterWhile, => __validateFor, => __loop,
     => __switchFailed, => __makeVerbFacet,
     => __suchThat, => __matchSame, => __bind, => __quasiMatcher,
+    => __auditedBy,
     # Superpowers.
     => M, => Ref, => eval, => help, => import, => m__quasiParser,
     => simple__quasiParser, => term__quasiParser, => throw,
