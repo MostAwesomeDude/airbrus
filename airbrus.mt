@@ -27,8 +27,8 @@ def environment := [
     => __equalizer, => __comparer,
     => __accumulateList, => __accumulateMap,
     => __slotToBinding,
-    => Any, => Bool, => Char, => DeepFrozen, => Double, => Empty, => Int,
-    => List, => Map, => NullOk, => Same, => Selfless, => Set, => Str,
+    => Any, => Bool, => Bytes, => Char, => DeepFrozen, => Double, => Empty,
+    => Int, => List, => Map, => NullOk, => Same, => Selfless, => Set, => Str,
     => SubrangeGuard, => Void,
     => __splitList, => __mapEmpty, => __mapExtract,
     => __booleanFlow, => __iterWhile, => __validateFor, => __loop,
@@ -36,8 +36,8 @@ def environment := [
     => __suchThat, => __matchSame, => __bind, => __quasiMatcher,
     => __auditedBy,
     # Superpowers.
-    => M, => Ref, => eval, => help, => import, => m__quasiParser,
-    => simple__quasiParser, => term__quasiParser, => throw,
+    => M, => Ref, => eval, => help, => import, => b__quasiParser,
+    => m__quasiParser, => simple__quasiParser, => term__quasiParser, => throw,
 ]
 
 def performEval(text):
