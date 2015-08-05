@@ -20,32 +20,36 @@ webVat.seed(webStarter)
 
 def nick :Str := "airbrus"
 
-def environment := [
-    => null, => true, => false, => Infinity, => NaN,
-    => __makeList, => __makeMap, => __makeMessageDesc, => _makeOrderedSpace,
-    => __makeParamDesc, => __makeProtocolDesc, => __makeString,
-    => __equalizer, => _comparer,
-    => _accumulateList, => _accumulateMap,
-    => __slotToBinding,
-    => Any, => Bool, => Bytes, => Char, => DeepFrozen, => Double, => Empty,
-    => Int, => List, => Map, => NullOk, => Same, => Selfless, => Set, => Str,
-    => SubrangeGuard, => Void,
-    => _splitList, => _mapEmpty, => _mapExtract,
-    => _booleanFlow, => _iterWhile, => _validateFor, => __loop,
-    => _switchFailed, => _makeVerbFacet,
-    => _suchThat, => _matchSame, => _bind, => _quasiMatcher,
-    => __auditedBy,
+def baseEnvironmentBindings := [
+    => &&null, => &&true, => &&false, => &&Infinity, => &&NaN,
+    => &&__makeList, => &&__makeMap, => &&__makeMessageDesc, => &&_makeOrderedSpace,
+    => &&__makeParamDesc, => &&__makeProtocolDesc, => &&__makeString,
+    => &&__equalizer, => &&_comparer,
+    => &&_accumulateList, => &&_accumulateMap,
+    => &&__slotToBinding,
+    => &&Any, => &&Bool, => &&Bytes, => &&Char, => &&DeepFrozen, => &&Double, => &&Empty,
+    => &&Int, => &&List, => &&Map, => &&Near, => &&NullOk, => &&Same, => &&Selfless,
+    => &&Set, => &&Str, => &&SubrangeGuard, => &&Void,
+    => &&_splitList, => &&_mapEmpty, => &&_mapExtract,
+    => &&_booleanFlow, => &&_iterWhile, => &&_validateFor, => &&__loop,
+    => &&_switchFailed, => &&_makeVerbFacet,
+    => &&_suchThat, => &&_matchSame, => &&_bind, => &&_quasiMatcher,
+    => &&__auditedBy,
     # Superpowers.
-    => M, => Ref, => eval, => help, => import, => b__quasiParser,
-    => m__quasiParser, => simple__quasiParser, => term__quasiParser, => throw,
+    => &&M, => &&Ref, => &&eval, => &&help, => &&import, => &&b__quasiParser,
+    => &&m__quasiParser, => &&simple__quasiParser, => &&term__quasiParser, => &&throw,
 ]
 
-def performEval(text):
+def baseEnvironment := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
+
+def performEval(text, env):
     try:
-        def result := eval(text, environment)
-        return `$result`
+        def [result, newEnv] := eval.evalToPair(text, env)
+        return [`$result`, newEnv]
     catch via (unsealException) [problem, _]:
-        return `$problem`
+        return [`$problem`, env]
+
+def userEnvironments := [].asMap().diverge()
 
 object handler:
     to getNick():
@@ -71,7 +75,10 @@ object handler:
 
     to privmsg(client, user, channel, message):
         if (message =~ `> @text`):
-            def response := performEval(text)
+            def userEnv := userEnvironments.fetch(user.getNick(),
+                                                  fn {baseEnvironment})
+            def [response, newEnv] := performEval(text, userEnv)
+            userEnvironments[user.getNick()] := newEnv
             for line in response.split("\n"):
                 client.say(channel, line)
 
