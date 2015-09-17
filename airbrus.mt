@@ -5,10 +5,10 @@ def main(=> Timer, => currentRuntime, => currentVat,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
     def [=> strToInt] | _ := import("lib/atoi")
-    def [=> makeIRCClient, => connectIRCClient] := import("lib/irc/client",
+    def [=> makeIRCClient, => connectIRCClient] := import.script("lib/irc/client",
         [=> Timer])
     def [=> elementsOf] | _ := import("fun/elements")
-    def [=> makeMonteParser] | _ := import("lib/parsers/monte")
+    def [=> makeMonteParser] | _ := import.script("lib/parsers/monte")
 
     def webStarter():
         def [=> tag] | _ := import("lib/http/tag")
@@ -57,7 +57,7 @@ def main(=> Timer, => currentRuntime, => currentVat,
                                  ["elements" => elementsResource,
                                   "debug" => makeDebugResource(currentRuntime)])
 
-        def [=> makeHTTPEndpoint] | _ := import("lib/http/server")
+        def [=> makeHTTPEndpoint] | _ := import.script("lib/http/server")
         def app := makeResourceApp(root)
         def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
         endpoint.listen(app)
