@@ -1,17 +1,18 @@
 imports
 exports (main)
 
-def main(=> Timer, => currentRuntime, => currentVat,
+def main(=> bench, => Timer, => currentRuntime, => currentVat,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
-    def [=> strToInt] | _ := import("lib/atoi")
+    def [=> strToInt] | _ := import.script("lib/atoi")
     def [=> makeIRCClient, => connectIRCClient] := import.script("lib/irc/client",
-        [=> Timer])
-    def [=> elementsOf] | _ := import("fun/elements")
-    def [=> makeMonteParser] | _ := import.script("lib/parsers/monte")
+        [=> &&Timer])
+    def [=> elementsOf] | _ := import.script("fun/elements")
+    def [=> makeMonteParser] | _ := import.script("lib/parsers/monte",
+                                                  [=> &&bench])
 
     def webStarter():
-        def [=> tag] | _ := import("lib/http/tag")
+        def [=> tag] | _ := import.script("lib/http/tag")
         def [
             => makeDebugResource,
             => makeResource,
@@ -181,7 +182,7 @@ def main(=> Timer, => currentRuntime, => currentVat,
                         client.say(channel, `${user.getNick()}: I don't understand.`)
 
     def client := makeIRCClient(handler)
-    def ep := makeTCP4ClientEndpoint("irc.freenode.net", 6667)
-    # connectIRCClient(client, ep)
+    def ep := makeTCP4ClientEndpoint("91.217.189.42", 6667)
+    connectIRCClient(client, ep)
 
     return 0
