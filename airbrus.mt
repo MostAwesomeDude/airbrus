@@ -1,8 +1,15 @@
 imports
 exports (main)
 
+
+def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
+    for addr in addrs:
+        if (addr.getFamily() == "INET" && addr.getSocketType() == "stream"):
+            return addr.getAddress()
+
+
 def main(=> bench, => Timer, => currentRuntime, => currentVat,
-         => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
+         => getAddrInfo, => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
     def [=> strToInt] | _ := import.script("lib/atoi")
     def [=> makeIRCClient, => connectIRCClient] := import.script("lib/irc/client",
@@ -86,6 +93,7 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
         # Superpowers.
         => &&M, => &&Ref, => &&eval, => &&help, => &&import, => &&b__quasiParser,
         => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
+        => &&getAddrInfo,
     ]
 
     def baseEnvironment := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
@@ -181,8 +189,14 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
                     match _:
                         client.say(channel, `${user.getNick()}: I don't understand.`)
 
-    def client := makeIRCClient(handler)
-    def ep := makeTCP4ClientEndpoint("91.217.189.42", 6667)
-    connectIRCClient(client, ep)
+    def addrs := getAddrInfo(b`irc.freenode.net`, b``)
+    when (addrs) ->
+        def address := chooseAddress(addrs)
+        if (address == null):
+            traceln("Couldn't choose an address to connect to!")
+
+        def client := makeIRCClient(handler)
+        def ep := makeTCP4ClientEndpoint(address, 6667)
+        connectIRCClient(client, ep)
 
     return 0
