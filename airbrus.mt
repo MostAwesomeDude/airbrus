@@ -75,6 +75,7 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
 
     def nick :Str := "airbrus"
 
+    def crypt := currentRuntime.getCrypt()
     def baseEnvironmentBindings := [
         => &&null, => &&true, => &&false, => &&Infinity, => &&NaN,
         => &&__makeList, => &&__makeMap, => &&__makeMessageDesc, => &&_makeOrderedSpace,
@@ -94,6 +95,8 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
         => &&M, => &&Ref, => &&eval, => &&help, => &&import, => &&b__quasiParser,
         => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
         => &&getAddrInfo,
+        # Crypto services.
+        => &&crypt,
     ]
 
     def baseEnvironment := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
