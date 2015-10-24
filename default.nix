@@ -1,7 +1,7 @@
-{ system ? builtins.currentSystem }:
+{ system ? builtins.currentSystem, typhonPackage ? ~/typhon/default.nix }:
 let
   nixpkgs = import <nixpkgs> { inherit system; };
-  typhon = nixpkgs.callPackage ~/typhon/default.nix {};
+  typhon = nixpkgs.callPackage typhonPackage {};
   jobs = with nixpkgs; {
     airbrus = callPackage ./airbrus.nix {
       typhonVm = typhon.typhonVm;

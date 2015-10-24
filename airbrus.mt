@@ -1,12 +1,12 @@
 imports
 exports (main)
 
+def [=> help :DeepFrozen] | _ := import("lib/help")
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
     for addr in addrs:
         if (addr.getFamily() == "INET" && addr.getSocketType() == "stream"):
             return addr.getAddress()
-
 
 def main(=> bench, => Timer, => currentRuntime, => currentVat,
          => getAddrInfo, => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
