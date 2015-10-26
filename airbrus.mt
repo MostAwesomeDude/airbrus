@@ -8,7 +8,32 @@ def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
         if (addr.getFamily() == "INET" && addr.getSocketType() == "stream"):
             return addr.getAddress()
 
-def main(=> bench, => Timer, => currentRuntime, => currentVat,
+
+def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
+    var channels :List[Str] := []
+    var nick :Str := "airbrus"
+
+    while (argv.size() > 0):
+        switch (argv):
+            match [=="-n", n] + tail:
+                traceln(`Using nick '$nick'`)
+                nick := n
+                argv := tail
+            match [channel] + tail:
+                traceln(`Adding channel '$channel'`)
+                channels with= (channel)
+                argv := tail
+
+    return object configuration:
+        to channels() :List[Str]:
+            return channels
+
+        to nick() :Str:
+            return nick
+
+
+def main(=> bench, => Timer,
+         => currentProcess, => currentRuntime, => currentVat,
          => getAddrInfo, => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
     def [=> strToInt] | _ := import.script("lib/atoi")
@@ -17,6 +42,8 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
     def [=> elementsOf] | _ := import.script("fun/elements")
     def [=> makeMonteParser] | _ := import.script("lib/parsers/monte",
                                                   [=> &&bench])
+
+    def config := parseArguments(currentProcess.getArguments())
 
     def webStarter():
         def [=> tag] | _ := import.script("lib/http/tag")
@@ -73,7 +100,7 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
     def webVat := currentVat.sprout(`HTTP server`)
     webVat.seed(webStarter)
 
-    def nick :Str := "airbrus"
+    def nick :Str := config.nick()
 
     def crypt := currentRuntime.getCrypt()
     def baseEnvironmentBindings := [
@@ -87,7 +114,7 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
         => &&Int, => &&List, => &&Map, => &&Near, => &&NullOk, => &&Same, => &&Selfless,
         => &&Set, => &&Str, => &&SubrangeGuard, => &&Void,
         => &&_splitList, => &&_mapEmpty, => &&_mapExtract,
-        => &&_booleanFlow, => &&_iterWhile, => &&_validateFor, => &&__loop,
+        => &&_booleanFlow, => &&_iterForever, => &&_validateFor, => &&__loop,
         => &&_switchFailed, => &&_makeVerbFacet,
         => &&_suchThat, => &&_matchSame, => &&_bind, => &&_quasiMatcher,
         => &&__auditedBy,
@@ -115,8 +142,9 @@ def main(=> bench, => Timer, => currentRuntime, => currentVat,
             return nick
 
         to loggedIn(client):
-            client.join("#montebot")
-            client.join("#monte")
+            for channel in config.channels():
+                traceln(`Joining #$channel...`)
+                client.join(`#$channel`)
 
         to ctcp(client, user, message):
             switch (message):

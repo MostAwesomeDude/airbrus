@@ -4,12 +4,12 @@ stdenv.mkDerivation {
     name = "airbrus";
     buildInputs = [ typhonVm mast ];
     buildPhase = ''
-      ${typhonVm}/mt-typhon -l ${mast}/mast ${mast}/mast/montec -mix $src/airbrus.mt airbrus.ty
+      ${typhonVm}/mt-typhon -l ${mast}/mast ${mast}/mast/montec -mix -format mast $src/airbrus.mt airbrus.mast
       '';
     installPhase = ''
       mkdir -p $out/bin
-      cp airbrus.ty $out/
-      echo "${typhonVm}/mt-typhon -l ${mast}/mast $out/airbrus" > $out/bin/airbrus
+      cp airbrus.mast $out/
+      echo "${typhonVm}/mt-typhon -l ${mast}/mast $out/airbrus \"\$@\"" > $out/bin/airbrus
       chmod +x $out/bin/airbrus
       '';
     doCheck = false;
