@@ -2,6 +2,7 @@ imports
 exports (main)
 
 def [=> help :DeepFrozen] | _ := import("lib/help")
+def [=> makePumpTube :DeepFrozen] | _ := import.script("lib/tubes/pumpTube")
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
     for addr in addrs:
@@ -32,16 +33,88 @@ def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
             return nick
 
 
-def main(=> bench, => Timer,
+# def dumpTodo(drain, todo :Map[Str, List[Str]]) as DeepFrozen:
+def dumpTodo(drain, todo) as DeepFrozen:
+    for k => v in todo:
+        drain<-receive(`$k:$\n`)
+        for item in v:
+            drain<-receive(` * $v$\n`)
+
+def loadTodo(fount) as DeepFrozen:
+    def [p, r] := Ref.promise()
+    var currentKey :Str := "mlatu"
+    def items := ["mlatu" => ["ko melbi"].diverge()].diverge()
+
+    object todoDrain:
+        to flowingFrom(fount):
+            return todoDrain
+
+        to receive(data):
+            switch (data):
+                match ` * @item`:
+                    items[currentKey].push(item)
+                match `@key:`:
+                    currentKey := key
+                    items[currentKey] := [].diverge()
+                match line:
+                    r.smash(`Couldn't load todo line: $line`)
+
+        to flowStopped(reason):
+            r.resolve(items)
+
+        to flowAborted(reason):
+            r.smash(`Couldn't load todo: $reason`)
+
+    return p
+
+
+def main(=> bench, => unittest, => Timer,
          => currentProcess, => currentRuntime, => currentVat,
-         => getAddrInfo, => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
+         => getAddrInfo,
+         => makeFileResource,
+         => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
     def [=> strToInt] | _ := import.script("lib/atoi")
     def [=> makeIRCClient, => connectIRCClient] := import.script("lib/irc/client",
         [=> &&Timer])
-    def [=> elementsOf] | _ := import.script("fun/elements")
     def [=> makeMonteParser] | _ := import.script("lib/parsers/monte",
                                                   [=> &&bench])
+    def [=> makeSplitPump :DeepFrozen] | _ := import("lib/tubes/splitPump",
+                                                     [=> unittest])
+
+
+    def makeLineTube() as DeepFrozen:
+        return makePumpTube(makeSplitPump(b`$\n`))
+
+    var todoList := [].asMap().diverge()
+    def todoFile := makeFileResource("todo.list")
+    def putTodo():
+        def drain := todoFile.openDrain()
+        dumpTodo(drain, todoList)
+        drain<-flowStopped("Finished dumping todo")
+    def getTodo():
+        def fount := todoFile.openFount()
+        def p := loadTodo(fount)
+        when (p) ->
+            traceln("Loaded")
+            todoList := p
+        catch problem:
+            traceln(`Problem loading todo: $problem`)
+    getTodo()
+    def putTodoItem(nick, item):
+        if (todoList.contains(nick)):
+            todoList[nick].push(item)
+        else:
+            todoList[nick] := [item].diverge()
+        putTodo()
+    def showTodoItems(name, sayer):
+        def items :List[Str] := todoList.fetch(name, fn {[]}).snapshot()
+        if (items.size() == 0):
+            sayer(`$name has nothing to do.`)
+        else:
+            sayer(`$name should do:`)
+            for item in items:
+                sayer(`• $item`)
 
     def config := parseArguments(currentProcess.getArguments())
 
@@ -55,42 +128,13 @@ def main(=> bench, => Timer,
             => smallBody,
         ] | _ := import("lib/http/resource")
 
-        object elementsResource:
-            to getStaticChildren():
-                return [].asMap()
-
-            to get(word :Str):
-                return object elementsWordResource:
-                    to get(_):
-                        return notFoundResource
-
-                    to getStaticChildren():
-                        return [].asMap()
-
-                    to run(verb, headers):
-                        return smallBody(tag.div(`${elementsOf(word)}`))
-
-            to run(verb, headers):
-                def word := "xenon"
-                return if (verb == "POST"):
-                    [303, ["Location" => `/elements/$word`], []]
-                else:
-                    def s := `<form method="POST" action="/elements">
-                        <label for="word">Word:</label>
-                        <input type="text" name="word" />
-                        <input type="submit" />
-                    </form>`
-                    smallBody(s)
-
         def rootWorker(resource, verb, headers):
             return smallBody(`<ul>
-                <li><a href="/elements">elements</a></li>
                 <li><a href="/debug">debug</a></li>
             </ul>`)
 
         def root := makeResource(rootWorker,
-                                 ["elements" => elementsResource,
-                                  "debug" => makeDebugResource(currentRuntime)])
+                                 ["debug" => makeDebugResource(currentRuntime)])
 
         def [=> makeHTTPEndpoint] | _ := import.script("lib/http/server")
         def app := makeResourceApp(root)
@@ -169,32 +213,12 @@ def main(=> bench, => Timer,
                 for line in response.split("\n"):
                     client.say(channel, line)
 
-            else if (message =~ `!@action @text`):
+            else if (message =~ `$nick: @action`):
                 switch (action):
-                    match =="parse":
-                        def parser := makeMonteParser("<irc>")
-                        parser.feedMany(text)
-                        if (parser.failed()):
-                            def failure := parser.getFailure()
-                            client.say(channel, `Parse failure: $failure`)
-                        else:
-                            def result := parser.results()[0]
-                            for line in `$result`.split("\n"):
-                                client.say(channel, line)
-
-                    match _:
-                        pass
-
-            else if (message =~ `$nick: @action` ? (user.getNick() == "simpson")):
-                switch (action):
-                    match `join @newChannel`:
-                        client.say(channel, "Okay, joining " + newChannel)
-                        client.join(newChannel)
-
                     match `speak`:
                         client.say(channel, "Hi there!")
 
-                    match `quit`:
+                    match `quit` ? (user.getNick() == "simpson"):
                         client.say(channel, "Okay, bye!")
                         client.quit("ma'a tarci pulce")
 
@@ -202,20 +226,32 @@ def main(=> bench, => Timer,
                         client.say(channel,
                             `${user.getNick()}: Sorry, I don't know how to do that. Yet.`)
 
-                    match `list @otherChannel`:
-                        escape ej:
-                            def users := [for k => _ in (client.getUsers(otherChannel, ej)) k]
-                            client.say(channel, " ".join(users))
-                        catch _:
-                            client.say(channel, `I can't see into $otherChannel`)
-
                     match `in @{via (strToInt) seconds} say @utterance`:
                         when (Timer.fromNow(seconds)) ->
                             client.say(channel,
-                                `${user.getNick()}: Alarm: "$utterance"`)
+                                `${user.getNick()}: "$utterance"`)
 
-                    match `elements @word`:
-                        client.say(channel, `Elements: ${elementsOf(word)}`)
+                    match `todo`:
+                        showTodoItems(user.getNick(),
+                                      fn s {client.say(channel, s)})
+
+                    match `todo @name`:
+                        if (name == ""):
+                            # They typed "todo ".
+                            showTodoItems(user.getNick(),
+                                          fn s {client.say(channel, s)})
+                        else:
+                            showTodoItems(name, fn s {client.say(channel, s)})
+
+                    match `I should @things`:
+                        putTodoItem(user.getNick(), things)
+                        client.say(channel,
+                                   `${user.getNick()}: I'm holding you to that.`)
+
+                    match `@name should @things`:
+                        putTodoItem(name, things)
+                        client.say(channel,
+                                   `$name: I've put that on your list.`)
 
                     match _:
                         client.say(channel, `${user.getNick()}: I don't understand.`)
