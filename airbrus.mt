@@ -68,6 +68,29 @@ def loadTodo(fount) as DeepFrozen:
     return p
 
 
+def webStarter(rawEndPoint, debugResource) as DeepFrozen:
+    def [=> tag] | _ := import.script("lib/http/tag")
+    def [
+        => makeResource,
+        => makeResourceApp,
+        => notFoundResource,
+        => smallBody,
+    ] | _ := import("lib/http/resource")
+
+    def rootWorker(resource, verb, headers):
+        return smallBody(`<ul>
+            <li><a href="/debug">debug</a></li>
+        </ul>`)
+
+    def root := makeResource(rootWorker,
+                             ["debug" => debugResource])
+
+    def [=> makeHTTPEndpoint] | _ := import.script("lib/http/server")
+    def app := makeResourceApp(root)
+    def endpoint := makeHTTPEndpoint(rawEndPoint)
+    endpoint.listen(app)
+
+
 def main(=> bench, => unittest, => Timer,
          => currentProcess, => currentRuntime, => currentVat,
          => getAddrInfo,
@@ -118,31 +141,10 @@ def main(=> bench, => unittest, => Timer,
 
     def config := parseArguments(currentProcess.getArguments())
 
-    def webStarter():
-        def [=> tag] | _ := import.script("lib/http/tag")
-        def [
-            => makeDebugResource,
-            => makeResource,
-            => makeResourceApp,
-            => notFoundResource,
-            => smallBody,
-        ] | _ := import("lib/http/resource")
-
-        def rootWorker(resource, verb, headers):
-            return smallBody(`<ul>
-                <li><a href="/debug">debug</a></li>
-            </ul>`)
-
-        def root := makeResource(rootWorker,
-                                 ["debug" => makeDebugResource(currentRuntime)])
-
-        def [=> makeHTTPEndpoint] | _ := import.script("lib/http/server")
-        def app := makeResourceApp(root)
-        def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
-        endpoint.listen(app)
-
     def webVat := currentVat.sprout(`HTTP server`)
-    webVat.seed(webStarter)
+    def [=> makeDebugResource] | _ := import("lib/http/resource")
+    webVat.seed(fn { webStarter(makeTCP4ServerEndpoint(8080),
+                                makeDebugResource(currentRuntime)) })
 
     def nick :Str := config.nick()
 
