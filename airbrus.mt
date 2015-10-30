@@ -3,6 +3,9 @@ exports (main)
 
 def [=> help :DeepFrozen] | _ := import("lib/help")
 def [=> makePumpTube :DeepFrozen] | _ := import.script("lib/tubes/pumpTube")
+def [=> makeUTF8DecodePump :DeepFrozen,
+     => makeUTF8EncodePump :DeepFrozen] | _ := import.script("lib/tubes/utf8")
+
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
     for addr in addrs:
@@ -35,7 +38,9 @@ def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
 
 # def dumpTodo(drain, todo :Map[Str, List[Str]]) as DeepFrozen:
 def dumpTodo(drain, todo) as DeepFrozen:
+    traceln(`entered dumpTodo`)
     for k => v in todo:
+        traceln(`dumping $k => $v`)
         drain<-receive(`$k:$\n`)
         for item in v:
             drain<-receive(` * $v$\n`)
@@ -81,6 +86,7 @@ def main(=> bench, => unittest, => Timer,
                                                   [=> &&bench])
     def [=> makeSplitPump :DeepFrozen] | _ := import("lib/tubes/splitPump",
                                                      [=> unittest])
+    def [=> chain] := import.script("lib/tubes/chain")
 
 
     def makeLineTube() as DeepFrozen:
@@ -89,11 +95,18 @@ def main(=> bench, => unittest, => Timer,
     var todoList := [].asMap().diverge()
     def todoFile := makeFileResource("todo.list")
     def putTodo():
-        def drain := todoFile.openDrain()
+        def drain := chain([
+            makePumpTube(makeUTF8EncodePump()),
+            todoFile.openDrain(),
+        ])
         dumpTodo(drain, todoList)
         drain<-flowStopped("Finished dumping todo")
     def getTodo():
-        def fount := todoFile.openFount()
+        def fount := chain([
+            todoFile.openFount(),
+            makeLineTube(),
+            makePumpTube(makeUTF8DecodePump()),
+        ])
         def p := loadTodo(fount)
         when (p) ->
             traceln("Loaded")
