@@ -10,6 +10,26 @@ def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
             return addr.getAddress()
 
 
+def powerlessEnvironmentBindings :DeepFrozen := [
+    => &&null, => &&true, => &&false, => &&Infinity, => &&NaN,
+    => &&__makeList, => &&__makeMap, => &&__makeMessageDesc, => &&_makeOrderedSpace,
+    => &&__makeParamDesc, => &&__makeProtocolDesc, => &&__makeString,
+    => &&__equalizer, => &&_comparer,
+    => &&_accumulateList, => &&_accumulateMap,
+    => &&__slotToBinding,
+    => &&Any, => &&Bool, => &&Bytes, => &&Char, => &&DeepFrozen, => &&Double, => &&Empty,
+    => &&Int, => &&List, => &&Map, => &&Near, => &&NullOk, => &&Same, => &&Selfless,
+    => &&Set, => &&Str, => &&SubrangeGuard, => &&Void,
+    => &&_splitList, => &&_mapEmpty, => &&_mapExtract,
+    => &&_booleanFlow, => &&_iterForever, => &&_validateFor, => &&__loop,
+    => &&_switchFailed, => &&_makeVerbFacet,
+    => &&_suchThat, => &&_matchSame, => &&_bind, => &&_quasiMatcher,
+    => &&__auditedBy,
+    # Superpowers.
+    => &&M, => &&Ref, => &&eval, => &&help, => &&import, => &&b__quasiParser,
+    => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
+]
+
 def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
     var channels :List[Str] := []
     var nick :Str := "airbrus"
@@ -33,88 +53,48 @@ def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
             return nick
 
 
-# def dumpTodo(drain, todo :Map[Str, List[Str]]) as DeepFrozen:
-def dumpTodo(drain, todo) as DeepFrozen:
-    for k => v in todo:
-        drain<-receive(`$k:$\n`)
-        for item in v:
-            drain<-receive(` * $v$\n`)
-
-def loadTodo(fount) as DeepFrozen:
-    def [p, r] := Ref.promise()
-    var currentKey :Str := "mlatu"
-    def items := ["mlatu" => ["ko melbi"].diverge()].diverge()
-
-    object todoDrain:
-        to flowingFrom(fount):
-            return todoDrain
-
-        to receive(data):
-            switch (data):
-                match ` * @item`:
-                    items[currentKey].push(item)
-                match `@key:`:
-                    currentKey := key
-                    items[currentKey] := [].diverge()
-                match line:
-                    r.smash(`Couldn't load todo line: $line`)
-
-        to flowStopped(reason):
-            r.resolve(items)
-
-        to flowAborted(reason):
-            r.smash(`Couldn't load todo: $reason`)
-
-    return p
-
-
-def webStarter(rawEndPoint, debugResource) as DeepFrozen:
-    def [=> tag] | _ := import.script("lib/http/tag")
-    def [
-        => makeResource,
-        => makeResourceApp,
-        => notFoundResource,
-        => smallBody,
-    ] | _ := import("lib/http/resource")
-
-    def rootWorker(resource, verb, headers):
-        return smallBody(`<ul>
-            <li><a href="/debug">debug</a></li>
-        </ul>`)
-
-    def root := makeResource(rootWorker,
-                             ["debug" => debugResource])
-
-    def [=> makeHTTPEndpoint] | _ := import.script("lib/http/server")
-    def app := makeResourceApp(root)
-    def endpoint := makeHTTPEndpoint(rawEndPoint)
-    endpoint.listen(app)
-
-
-def main(=> bench, => unittest, => Timer,
-         => currentProcess, => currentRuntime, => currentVat,
-         => getAddrInfo,
-         => makeFileResource,
-         => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
-         => unsealException) as DeepFrozen:
-    def [=> strToInt] | _ := import.script("lib/atoi")
-    def [=> makeIRCClient, => connectIRCClient] := import.script("lib/irc/client",
-        [=> &&Timer])
-    def [=> makeMonteParser] | _ := import.script("lib/parsers/monte",
-                                                  [=> &&bench])
-    def [=> makeSplitPump :DeepFrozen] | _ := import("lib/tubes/splitPump",
-                                                     [=> unittest])
-
-
-    def makeLineTube() as DeepFrozen:
-        return makePumpTube(makeSplitPump(b`$\n`))
-
+def makeTodoStore(todoFile) as DeepFrozen:
     var todoList := [].asMap().diverge()
-    def todoFile := makeFileResource("todo.list")
+
+    # def dumpTodo(drain, todo :Map[Str, List[Str]]) as DeepFrozen:
+    def dumpTodo(drain, todo) as DeepFrozen:
+        for k => v in todo:
+            drain<-receive(`$k:$\n`)
+            for item in v:
+                drain<-receive(` * $v$\n`)
+
+    def loadTodo(fount) as DeepFrozen:
+        def [p, r] := Ref.promise()
+        var currentKey :Str := "mlatu"
+        def items := ["mlatu" => ["ko melbi"].diverge()].diverge()
+
+        object todoDrain:
+            to flowingFrom(fount):
+                return todoDrain
+
+            to receive(data):
+                switch (data):
+                    match ` * @item`:
+                        items[currentKey].push(item)
+                    match `@key:`:
+                        currentKey := key
+                        items[currentKey] := [].diverge()
+                    match line:
+                        r.smash(`Couldn't load todo line: $line`)
+
+            to flowStopped(reason):
+                r.resolve(items)
+
+            to flowAborted(reason):
+                r.smash(`Couldn't load todo: $reason`)
+
+        return p
+
     def putTodo():
         def drain := todoFile.openDrain()
         dumpTodo(drain, todoList)
         drain<-flowStopped("Finished dumping todo")
+
     def getTodo():
         def fount := todoFile.openFount()
         def p := loadTodo(fount)
@@ -123,15 +103,30 @@ def main(=> bench, => unittest, => Timer,
             todoList := p
         catch problem:
             traceln(`Problem loading todo: $problem`)
+
     getTodo()
-    def putTodoItem(nick, item):
-        if (todoList.contains(nick)):
-            todoList[nick].push(item)
-        else:
-            todoList[nick] := [item].diverge()
-        putTodo()
+
+    return object todoStore:
+        to putTodoItem(nick: Str, item: Str) :Void:
+            if (todoList.contains(nick)):
+                todoList[nick].push(item)
+            else:
+                todoList[nick] := [item].diverge()
+            putTodo()
+
+        method get(name: Str) :List[Str]:
+            todoList.fetch(name, fn {[]}).snapshot()
+
+
+def makeHandler(config, todoStore, baseEnvironment, performEval, Timer) as DeepFrozen:
+    def [=> strToInt] | _ := import.script("lib/atoi")
+
+    def nick :Str := config.nick()
+
+    def userEnvironments := [].asMap().diverge()
+
     def showTodoItems(name, sayer):
-        def items :List[Str] := todoList.fetch(name, fn {[]}).snapshot()
+        def items :List[Str] := todoStore[name]
         if (items.size() == 0):
             sayer(`$name has nothing to do.`)
         else:
@@ -139,51 +134,7 @@ def main(=> bench, => unittest, => Timer,
             for item in items:
                 sayer(`• $item`)
 
-    def config := parseArguments(currentProcess.getArguments())
-
-    def webVat := currentVat.sprout(`HTTP server`)
-    def [=> makeDebugResource] | _ := import("lib/http/resource")
-    webVat.seed(fn { webStarter(makeTCP4ServerEndpoint(8080),
-                                makeDebugResource(currentRuntime)) })
-
-    def nick :Str := config.nick()
-
-    def crypt := currentRuntime.getCrypt()
-    def baseEnvironmentBindings := [
-        => &&null, => &&true, => &&false, => &&Infinity, => &&NaN,
-        => &&__makeList, => &&__makeMap, => &&__makeMessageDesc, => &&_makeOrderedSpace,
-        => &&__makeParamDesc, => &&__makeProtocolDesc, => &&__makeString,
-        => &&__equalizer, => &&_comparer,
-        => &&_accumulateList, => &&_accumulateMap,
-        => &&__slotToBinding,
-        => &&Any, => &&Bool, => &&Bytes, => &&Char, => &&DeepFrozen, => &&Double, => &&Empty,
-        => &&Int, => &&List, => &&Map, => &&Near, => &&NullOk, => &&Same, => &&Selfless,
-        => &&Set, => &&Str, => &&SubrangeGuard, => &&Void,
-        => &&_splitList, => &&_mapEmpty, => &&_mapExtract,
-        => &&_booleanFlow, => &&_iterForever, => &&_validateFor, => &&__loop,
-        => &&_switchFailed, => &&_makeVerbFacet,
-        => &&_suchThat, => &&_matchSame, => &&_bind, => &&_quasiMatcher,
-        => &&__auditedBy,
-        # Superpowers.
-        => &&M, => &&Ref, => &&eval, => &&help, => &&import, => &&b__quasiParser,
-        => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
-        => &&getAddrInfo,
-        # Crypto services.
-        => &&crypt,
-    ]
-
-    def baseEnvironment := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
-
-    def performEval(text, env):
-        try:
-            def [result, newEnv] := eval.evalToPair(text, env)
-            return [`$result`, newEnv]
-        catch via (unsealException) [problem, _]:
-            return [`$problem`, env]
-
-    def userEnvironments := [].asMap().diverge()
-
-    object handler:
+    return object handler:
         to getNick():
             return nick
 
@@ -246,17 +197,83 @@ def main(=> bench, => unittest, => Timer,
                             showTodoItems(name, fn s {client.say(channel, s)})
 
                     match `I should @things`:
-                        putTodoItem(user.getNick(), things)
+                        todoStore.putTodoItem(user.getNick(), things)
                         client.say(channel,
                                    `${user.getNick()}: I'm holding you to that.`)
 
                     match `@name should @things`:
-                        putTodoItem(name, things)
+                        todoStore.putTodoItem(name, things)
                         client.say(channel,
                                    `$name: I've put that on your list.`)
 
                     match _:
                         client.say(channel, `${user.getNick()}: I don't understand.`)
+
+
+def webStarter(rawEndPoint, debugResource) as DeepFrozen:
+    def [=> tag] | _ := import.script("lib/http/tag")
+    def [
+        => makeResource,
+        => makeResourceApp,
+        => notFoundResource,
+        => smallBody,
+    ] | _ := import("lib/http/resource")
+
+    def rootWorker(resource, verb, headers):
+        return smallBody(`<ul>
+            <li><a href="/debug">debug</a></li>
+        </ul>`)
+
+    def root := makeResource(rootWorker,
+                             ["debug" => debugResource])
+
+    def [=> makeHTTPEndpoint] | _ := import.script("lib/http/server")
+    def app := makeResourceApp(root)
+    def endpoint := makeHTTPEndpoint(rawEndPoint)
+    endpoint.listen(app)
+
+
+def main(=> bench, => unittest, => Timer,
+         => currentProcess, => currentRuntime, => currentVat,
+         => getAddrInfo,
+         => makeFileResource,
+         => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
+         => unsealException) as DeepFrozen:
+    def [=> makeIRCClient, => connectIRCClient] := import.script("lib/irc/client",
+        [=> &&Timer])
+    def [=> makeMonteParser] | _ := import.script("lib/parsers/monte",
+                                                  [=> &&bench])
+    def [=> makeSplitPump :DeepFrozen] | _ := import("lib/tubes/splitPump",
+                                                     [=> unittest])
+
+    def makeLineTube() as DeepFrozen:
+        return makePumpTube(makeSplitPump(b`$\n`))
+
+    def todoStore := makeTodoStore(makeFileResource("todo.list"))
+
+    def config := parseArguments(currentProcess.getArguments())
+
+    def webVat := currentVat.sprout(`HTTP server`)
+    def [=> makeDebugResource] | _ := import("lib/http/resource")
+    webVat.seed(fn { webStarter(makeTCP4ServerEndpoint(8080),
+                                makeDebugResource(currentRuntime)) })
+
+    def crypt := currentRuntime.getCrypt()
+    def baseEnvironmentBindings := powerlessEnvironmentBindings | [
+        # Superpowers.
+        => &&getAddrInfo,
+        # Crypto services.
+        => &&crypt,
+    ]
+
+    def baseEnvironment := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
+
+    def performEval(text, env):
+        try:
+            def [result, newEnv] := eval.evalToPair(text, env)
+            return [`$result`, newEnv]
+        catch via (unsealException) [problem, _]:
+            return [`$problem`, env]
 
     def addrs := getAddrInfo(b`irc.freenode.net`, b``)
     when (addrs) ->
@@ -264,7 +281,7 @@ def main(=> bench, => unittest, => Timer,
         if (address == null):
             traceln("Couldn't choose an address to connect to!")
 
-        def client := makeIRCClient(handler)
+        def client := makeIRCClient(makeHandler(config, todoStore, baseEnvironment, performEval, Timer))
         def ep := makeTCP4ClientEndpoint(address, 6667)
         connectIRCClient(client, ep)
 
