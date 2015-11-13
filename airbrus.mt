@@ -13,6 +13,14 @@ def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
             return addr.getAddress()
 
 
+def partition(iterable, pred) as DeepFrozen:
+    def yes := [].diverge()
+    def no := [].diverge()
+    for i in iterable:
+        pred(i).pick(yes, no).push(i)
+    return [yes.snapshot(), no.snapshot()]
+
+
 def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
     var channels :List[Str] := []
     var nick :Str := "airbrus"
@@ -43,7 +51,7 @@ def dumpTodo(drain, todo) as DeepFrozen:
         traceln(`dumping $k => $v`)
         drain<-receive(`$k:$\n`)
         for item in v:
-            drain<-receive(` * $v$\n`)
+            drain<-receive(` * $item$\n`)
 
 def loadTodo(fount) as DeepFrozen:
     def [p, r] := Ref.promise()
@@ -128,6 +136,24 @@ def main(=> bench, => unittest, => Timer,
             sayer(`$name should do:`)
             for item in items:
                 sayer(`• $item`)
+    def removeTodoItem(name, needle, sayer):
+        if (todoList.contains(name)):
+            def items := todoList[name]
+            def [crossedOff,
+                 remaining] := partition(items, fn s {s =~ `@_$needle@_`})
+            switch (crossedOff):
+                match []:
+                    sayer(`I'm not seeing it on $name's list…`)
+                match [single]:
+                    todoList[name] := remaining.diverge()
+                    putTodo()
+                    sayer(`Crossed off "$single". Good work!`)
+                match several:
+                    sayer(`I found a couple things; which one did you mean?`)
+                    for item in several:
+                        sayer(`• $item`)
+        else:
+            sayer(`But $name's list is empty.`)
 
     def config := parseArguments(currentProcess.getArguments())
 
@@ -265,6 +291,15 @@ def main(=> bench, => unittest, => Timer,
                         putTodoItem(name, things)
                         client.say(channel,
                                    `$name: I've put that on your list.`)
+
+                    match `I did @needle`:
+                        def name := user.getNick()
+                        removeTodoItem(name, needle,
+                                       fn s {client.say(channel, s)})
+
+                    match `@name did @needle`:
+                        removeTodoItem(name, needle,
+                                       fn s {client.say(channel, s)})
 
                     match _:
                         client.say(channel, `${user.getNick()}: I don't understand.`)
