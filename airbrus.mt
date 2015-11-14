@@ -1,7 +1,6 @@
 imports
 exports (main)
 
-def [=> help :DeepFrozen] | _ := import("lib/help")
 def [=> makePumpTube :DeepFrozen] | _ := import.script("lib/tubes/pumpTube")
 def [=> makeUTF8DecodePump :DeepFrozen,
      => makeUTF8EncodePump :DeepFrozen] | _ := import.script("lib/tubes/utf8")
@@ -42,6 +41,13 @@ def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
 
         to nick() :Str:
             return nick
+
+
+def makeAirbrusHelp(sayer) as DeepFrozen:
+    return def airbrusHelp(specimen):
+        def quoted := M.toQuote(specimen)
+        def iface := specimen._getAllegedInterface()
+        sayer(`Object: $quoted Interface: $iface`)
 
 
 # def dumpTodo(drain, todo :Map[Str, List[Str]]) as DeepFrozen:
@@ -202,21 +208,21 @@ def main(=> bench, => unittest, => Timer,
         => &&_suchThat, => &&_matchSame, => &&_bind, => &&_quasiMatcher,
         => &&__auditedBy,
         # Superpowers.
-        => &&M, => &&Ref, => &&eval, => &&help, => &&import, => &&b__quasiParser,
+        => &&M, => &&Ref, => &&eval, => &&import, => &&b__quasiParser,
         => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
         => &&getAddrInfo,
         # Crypto services.
         => &&crypt,
     ]
 
-    def baseEnvironment := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
+    def baseEnv := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
 
     def performEval(text, env):
         try:
             def [result, newEnv] := eval.evalToPair(text, env)
-            return [`$result`, newEnv]
+            return [M.toQuote(result), newEnv]
         catch via (unsealException) [problem, _]:
-            return [`$problem`, env]
+            return [`Exception: $problem`, env]
 
     def userEnvironments := [].asMap().diverge()
 
@@ -245,8 +251,11 @@ def main(=> bench, => unittest, => Timer,
 
         to privmsg(client, user, channel, message):
             if (message =~ `> @text`):
+                # Customize help so that its output doesn't get quoted.
+                def help := makeAirbrusHelp(fn s {client.say(channel, s)})
+                def instanceEnv := ["help" => &&help]
                 def userEnv := userEnvironments.fetch(user.getNick(),
-                                                      fn {baseEnvironment})
+                                                      fn {baseEnv | instanceEnv})
                 def [response, newEnv] := performEval(text, userEnv)
                 userEnvironments[user.getNick()] := newEnv
                 for line in response.split("\n"):
