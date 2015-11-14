@@ -217,12 +217,23 @@ def main(=> bench, => unittest, => Timer,
 
     def baseEnv := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
 
-    def performEval(text, env):
+    def performEval(text, env, sayer):
         try:
             def [result, newEnv] := eval.evalToPair(text, env)
-            return [M.toQuote(result), newEnv]
+            # If the result is eventual, then don't say it yet, but set up a
+            # callback for when it resolves.
+            if (Ref.isResolved(result)):
+                sayer(M.toQuote(result))
+            else:
+                sayer("I'll let you know when that's ready.")
+                when (result) ->
+                    sayer(`Here you are: ${M.toQuote(result)}`)
+                catch problem:
+                    sayer(`There was a problem: ${M.toQuote(problem)}`)
+            return newEnv
         catch via (unsealException) [problem, _]:
-            return [`Exception: $problem`, env]
+            sayer(`Exception: $problem`)
+            return env
 
     def userEnvironments := [].asMap().diverge()
 
@@ -256,10 +267,11 @@ def main(=> bench, => unittest, => Timer,
                 def instanceEnv := ["help" => &&help]
                 def userEnv := userEnvironments.fetch(user.getNick(),
                                                       fn {baseEnv | instanceEnv})
-                def [response, newEnv] := performEval(text, userEnv)
+                def sayer(s :Str):
+                    for line in s.split("\n"):
+                        client.say(channel, line)
+                def newEnv := performEval(text, userEnv, sayer)
                 userEnvironments[user.getNick()] := newEnv
-                for line in response.split("\n"):
-                    client.say(channel, line)
 
             else if (message =~ `$nick: @action`):
                 switch (action):
