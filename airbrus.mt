@@ -4,12 +4,24 @@ exports (main)
 def [=> makePumpTube :DeepFrozen] | _ := import.script("lib/tubes/pumpTube")
 def [=> makeUTF8DecodePump :DeepFrozen,
      => makeUTF8EncodePump :DeepFrozen] | _ := import.script("lib/tubes/utf8")
+def [=> UTF8 :DeepFrozen] | _ := import.script("lib/codec/utf8")
 
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
     for addr in addrs:
         if (addr.getFamily() == "INET" && addr.getSocketType() == "stream"):
             return addr.getAddress()
+
+
+def composeCodec(outer :DeepFrozen, inner :DeepFrozen) as DeepFrozen:
+    return object composedCodec as DeepFrozen:
+        "A combination of two codecs."
+
+        to encode(specimen, ej):
+            return outer.encode(inner.encode(specimen, ej), ej)
+
+        to decode(specimen, ej):
+            return inner.decode(outer.decode(specimen, ej), ej)
 
 
 def partition(iterable, pred) as DeepFrozen:
@@ -50,43 +62,6 @@ def makeAirbrusHelp(sayer) as DeepFrozen:
         sayer(`Object: $quoted Interface: $iface`)
 
 
-# def dumpTodo(drain, todo :Map[Str, List[Str]]) as DeepFrozen:
-def dumpTodo(drain, todo) as DeepFrozen:
-    traceln(`entered dumpTodo`)
-    for k => v in todo:
-        traceln(`dumping $k => $v`)
-        drain<-receive(`$k:$\n`)
-        for item in v:
-            drain<-receive(` * $item$\n`)
-
-def loadTodo(fount) as DeepFrozen:
-    def [p, r] := Ref.promise()
-    var currentKey :Str := "mlatu"
-    def items := ["mlatu" => ["ko melbi"].diverge()].diverge()
-
-    object todoDrain:
-        to flowingFrom(fount):
-            return todoDrain
-
-        to receive(data):
-            switch (data):
-                match ` * @item`:
-                    items[currentKey].push(item)
-                match `@key:`:
-                    currentKey := key
-                    items[currentKey] := [].diverge()
-                match line:
-                    r.smash(`Couldn't load todo line: $line`)
-
-        to flowStopped(reason):
-            r.resolve(items)
-
-        to flowAborted(reason):
-            r.smash(`Couldn't load todo: $reason`)
-
-    return p
-
-
 def main(=> bench, => unittest, => Timer,
          => currentProcess, => currentRuntime, => currentVat,
          => getAddrInfo,
@@ -101,41 +76,29 @@ def main(=> bench, => unittest, => Timer,
     def [=> makeSplitPump :DeepFrozen] | _ := import("lib/tubes/splitPump",
                                                      [=> unittest])
     def [=> chain] := import.script("lib/tubes/chain")
+    def [=> JSON :DeepFrozen] | _ := import("lib/json", [=> unittest])
 
+    def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
 
     def makeLineTube() as DeepFrozen:
         return makePumpTube(makeSplitPump(b`$\n`))
 
-    var todoList := [].asMap().diverge()
+    var todoMap :Map[Str, List[Str]] := [].asMap()
     def todoFile := makeFileResource("todo.list")
     def putTodo():
-        def drain := chain([
-            makePumpTube(makeUTF8EncodePump()),
-            todoFile.openDrain(),
-        ])
-        dumpTodo(drain, todoList)
-        drain<-flowStopped("Finished dumping todo")
+        todoFile.setContents(UTF8JSON.encode(todoMap.snapshot(), null))
     def getTodo():
-        def fount := chain([
-            todoFile.openFount(),
-            makeLineTube(),
-            makePumpTube(makeUTF8DecodePump()),
-        ])
-        def p := loadTodo(fount)
+        def p := todoFile.getContents()
         when (p) ->
-            traceln("Loaded")
-            todoList := p
-        catch problem:
-            traceln(`Problem loading todo: $problem`)
+            todoMap := UTF8JSON.decode(p, null)
     getTodo()
+
     def putTodoItem(nick, item):
-        if (todoList.contains(nick)):
-            todoList[nick].push(item)
-        else:
-            todoList[nick] := [item].diverge()
+        def items := todoMap.fetch(nick, fn {[]}).with(item)
+        todoMap with= (nick, items)
         putTodo()
     def showTodoItems(name, sayer):
-        def items :List[Str] := todoList.fetch(name, fn {[]}).snapshot()
+        def items :List[Str] := todoMap.fetch(name, fn {[]})
         if (items.size() == 0):
             sayer(`$name has nothing to do.`)
         else:
@@ -143,15 +106,15 @@ def main(=> bench, => unittest, => Timer,
             for item in items:
                 sayer(`• $item`)
     def removeTodoItem(name, needle, sayer):
-        if (todoList.contains(name)):
-            def items := todoList[name]
+        def items := todoMap.fetch(name, fn {[]})
+        if (items.size() > 0):
             def [crossedOff,
                  remaining] := partition(items, fn s {s =~ `@_$needle@_`})
             switch (crossedOff):
                 match []:
                     sayer(`I'm not seeing it on $name's list…`)
                 match [single]:
-                    todoList[name] := remaining.diverge()
+                    todoMap with= (name, remaining)
                     putTodo()
                     sayer(`Crossed off "$single". Good work!`)
                 match several:
