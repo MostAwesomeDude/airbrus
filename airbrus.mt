@@ -1,11 +1,6 @@
 imports
 exports (main)
 
-def [=> makePumpTube :DeepFrozen] | _ := import.script("lib/tubes/pumpTube")
-def [=> makeUTF8DecodePump :DeepFrozen,
-     => makeUTF8EncodePump :DeepFrozen] | _ := import.script("lib/tubes/utf8")
-def [=> UTF8 :DeepFrozen] | _ := import.script("lib/codec/utf8")
-
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
     for addr in addrs:
@@ -73,10 +68,14 @@ def main(=> bench, => unittest, => Timer,
         [=> &&Timer])
     def [=> makeMonteParser] | _ := import.script("lib/parsers/monte",
                                                   [=> &&bench])
-    def [=> makeSplitPump :DeepFrozen] | _ := import("lib/tubes/splitPump",
-                                                     [=> unittest])
-    def [=> chain] := import.script("lib/tubes/chain")
+    def [=> makePumpTube :DeepFrozen,
+         => makeUTF8DecodePump :DeepFrozen,
+         => makeUTF8EncodePump :DeepFrozen,
+         => makeSplitPump :DeepFrozen,
+         => chain :DeepFrozen] | _ := import("lib/tubes", [=> unittest])
     def [=> JSON :DeepFrozen] | _ := import("lib/json", [=> unittest])
+    def [=> UTF8 :DeepFrozen] | _ := import.script("lib/codec/utf8",
+                                                   [=> &&unittest])
 
     def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
 
@@ -174,8 +173,11 @@ def main(=> bench, => unittest, => Timer,
         => &&M, => &&Ref, => &&eval, => &&import, => &&b__quasiParser,
         => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
         => &&getAddrInfo,
-        # Crypto services.
+        # Crypto services. Totally safe on IRC; the worst they can do is
+        # gently munch on the OS's entropy pool.
         => &&crypt,
+        # Some safe conveniences.
+        => &&UTF8, => &&JSON,
     ]
 
     def baseEnv := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
@@ -192,7 +194,11 @@ def main(=> bench, => unittest, => Timer,
                 when (result) ->
                     sayer(`Here you are: ${M.toQuote(result)}`)
                 catch problem:
-                    sayer(`There was a problem: ${M.toQuote(problem)}`)
+                    def description := M.toQuote(switch (problem) {
+                        match via (unsealException) [head, _] {head}
+                        match unsealed {unsealed}
+                    })
+                    sayer(`There was a problem: $description`)
             return newEnv
         catch via (unsealException) [problem, _]:
             sayer(`Exception: $problem`)
@@ -266,22 +272,16 @@ def main(=> bench, => unittest, => Timer,
                         else:
                             showTodoItems(name, fn s {client.say(channel, s)})
 
-                    match `I should @things`:
-                        putTodoItem(user.getNick(), things)
-                        client.say(channel,
-                                   `${user.getNick()}: I'm holding you to that.`)
-
-                    match `@name should @things`:
+                    match `@{var name} should @things`:
+                        if (name == "I" || name == "i"):
+                            name := user.getNick()
                         putTodoItem(name, things)
                         client.say(channel,
                                    `$name: I've put that on your list.`)
 
-                    match `I did @needle`:
-                        def name := user.getNick()
-                        removeTodoItem(name, needle,
-                                       fn s {client.say(channel, s)})
-
-                    match `@name did @needle`:
+                    match `@{var name} did @needle`:
+                        if (name == "I" || name == "i"):
+                            name := user.getNick()
                         removeTodoItem(name, needle,
                                        fn s {client.say(channel, s)})
 
