@@ -148,7 +148,7 @@ def main(=> bench, => unittest, => Timer,
         def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
         endpoint.listen(app)
 
-    def webVat := currentVat.sprout(`HTTP server`)
+    def webVat := currentVat.sprout(`HTTP server`, 1000 ** 3)
     webVat.seed(webStarter)
 
     def nick :Str := config.nick()
