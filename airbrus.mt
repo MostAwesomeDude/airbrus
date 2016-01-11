@@ -1,4 +1,3 @@
-imports
 exports (main)
 
 
@@ -63,18 +62,18 @@ def main(=> bench, => unittest, => Timer,
          => makeFileResource,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
-    def [=> strToInt] | _ := import.script("lib/atoi")
-    def [=> makeIRCClient, => connectIRCClient] := import.script("lib/irc/client",
+    def [=> strToInt] | _ := ::"import".script("lib/atoi")
+    def [=> makeIRCClient, => connectIRCClient] := ::"import".script("lib/irc/client",
         [=> &&Timer])
-    def [=> makeMonteParser] | _ := import.script("lib/parsers/monte",
+    def [=> makeMonteParser] | _ := ::"import".script("lib/parsers/monte",
                                                   [=> &&bench])
     def [=> makePumpTube :DeepFrozen,
          => makeUTF8DecodePump :DeepFrozen,
          => makeUTF8EncodePump :DeepFrozen,
          => makeSplitPump :DeepFrozen,
-         => chain :DeepFrozen] | _ := import("lib/tubes", [=> unittest])
-    def [=> JSON :DeepFrozen] | _ := import("lib/json", [=> unittest])
-    def [=> UTF8 :DeepFrozen] | _ := import.script("lib/codec/utf8",
+         => chain :DeepFrozen] | _ := ::"import"("lib/tubes", [=> unittest])
+    def [=> JSON :DeepFrozen] | _ := ::"import"("lib/json", [=> unittest])
+    def [=> UTF8 :DeepFrozen] | _ := ::"import".script("lib/codec/utf8",
                                                    [=> &&unittest])
 
     def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
@@ -126,14 +125,14 @@ def main(=> bench, => unittest, => Timer,
     def config := parseArguments(currentProcess.getArguments())
 
     def webStarter():
-        def [=> tag] | _ := import.script("lib/http/tag")
+        def [=> tag] | _ := ::"import".script("lib/http/tag")
         def [
             => makeDebugResource,
             => makeResource,
             => makeResourceApp,
             => notFoundResource,
             => smallBody,
-        ] | _ := import("lib/http/resource")
+        ] | _ := ::"import"("lib/http/resource")
 
         def rootWorker(resource, verb, headers):
             return smallBody(`<ul>
@@ -143,7 +142,7 @@ def main(=> bench, => unittest, => Timer,
         def root := makeResource(rootWorker,
                                  ["debug" => makeDebugResource(currentRuntime)])
 
-        def [=> makeHTTPEndpoint] | _ := import.script("lib/http/server")
+        def [=> makeHTTPEndpoint] | _ := ::"import".script("lib/http/server")
         def app := makeResourceApp(root)
         def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
         endpoint.listen(app)
@@ -170,7 +169,7 @@ def main(=> bench, => unittest, => Timer,
         => &&_suchThat, => &&_matchSame, => &&_bind, => &&_quasiMatcher,
         => &&_auditedBy,
         # Superpowers.
-        => &&M, => &&Ref, => &&eval, => &&import, => &&b__quasiParser,
+        => &&M, => &&Ref, => &&eval, => &&::"import", => &&b__quasiParser,
         => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
         => &&getAddrInfo,
         # Crypto services. Totally safe on IRC; the worst they can do is
