@@ -152,25 +152,9 @@ def main(=> bench, => unittest, => Timer,
     def nick :Str := config.nick()
 
     def crypt := currentRuntime.getCrypt()
-    def baseEnvironmentBindings := [
-        => &&null, => &&true, => &&false, => &&Infinity, => &&NaN,
-        => &&_makeList, => &&_makeMap, => &&_makeMessageDesc, => &&_makeOrderedSpace,
-        => &&_makeParamDesc, => &&_makeProtocolDesc, => &&_makeString,
-        => &&_equalizer, => &&_comparer,
-        => &&_accumulateList, => &&_accumulateMap,
-        => &&_slotToBinding,
-        => &&Any, => &&Bool, => &&Bytes, => &&Char, => &&DeepFrozen, => &&Double, => &&Empty,
-        => &&Int, => &&List, => &&Map, => &&Near, => &&NullOk, => &&Same, => &&Selfless,
-        => &&Set, => &&Str, => &&SubrangeGuard, => &&Void,
-        => &&_splitList, => &&_mapEmpty, => &&_mapExtract,
-        => &&_booleanFlow, => &&_iterForever, => &&_validateFor, => &&_loop,
-        => &&_switchFailed, => &&_makeVerbFacet,
-        => &&_suchThat, => &&_matchSame, => &&_bind, => &&_quasiMatcher,
-        => &&_auditedBy,
+    def baseEnvironmentBindings := safeScope | [
         # Superpowers.
-        => &&M, => &&Ref, => &&eval, => &&::"import", => &&b__quasiParser,
-        => &&m__quasiParser, => &&simple__quasiParser, => &&throw,
-        => &&getAddrInfo,
+        => &&::"import", => &&getAddrInfo,
         # Crypto services. Totally safe on IRC; the worst they can do is
         # gently munch on the OS's entropy pool.
         => &&crypt,
