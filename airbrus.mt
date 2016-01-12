@@ -62,7 +62,6 @@ def main(=> bench, => unittest, => Timer,
          => makeFileResource,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
-    def [=> strToInt] | _ := ::"import".script("lib/atoi")
     def [=> makeIRCClient, => connectIRCClient] := ::"import".script("lib/irc/client",
         [=> &&Timer])
     def [=> makeMonteParser] | _ := ::"import".script("lib/parsers/monte",
@@ -254,10 +253,15 @@ def main(=> bench, => unittest, => Timer,
                         client.say(channel,
                             `${user.getNick()}: Sorry, I don't know how to do that. Yet.`)
 
-                    match `in @{via (strToInt) seconds} say @utterance`:
-                        when (Timer.fromNow(seconds)) ->
+                    match `in @seconds say @utterance`:
+                        try:
+                            def delta := _makeInt(seconds)
+                            when (Timer.fromNow(seconds)) ->
+                                client.say(channel,
+                                    `${user.getNick()}: "$utterance"`)
+                        catch _:
                             client.say(channel,
-                                `${user.getNick()}: "$utterance"`)
+                                       `${user.getNick()}: Not an integer: $seconds`)
 
                     match `todo`:
                         showTodoItems(user.getNick(),
