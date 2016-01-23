@@ -1,4 +1,15 @@
+import "lib/irc/client" =~ [=> makeIRCClient :DeepFrozen, => connectIRCClient :DeepFrozen]
+import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
+                       => makeUTF8DecodePump :DeepFrozen,
+                       => makeUTF8EncodePump :DeepFrozen,
+                       => makeSplitPump :DeepFrozen,
+                       => chain :DeepFrozen]
+import "lib/json" =~ [=> JSON :DeepFrozen]
+import "unittest" =~ [=> unittest]
 exports (main)
+
+def [=> UTF8 :DeepFrozen] | _ := ::"import".script("lib/codec/utf8",
+                                                   [=> &&unittest])
 
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
@@ -26,7 +37,7 @@ def partition(iterable, pred) as DeepFrozen:
     return [yes.snapshot(), no.snapshot()]
 
 
-def parseArguments([processName, scriptName] + var argv) as DeepFrozen:
+def parseArguments(var argv) as DeepFrozen:
     var channels :List[Str] := []
     var nick :Str := "airbrus"
 
@@ -56,24 +67,12 @@ def makeAirbrusHelp(sayer) as DeepFrozen:
         sayer(`Object: $quoted Interface: $iface`)
 
 
-def main(=> bench, => unittest, => Timer,
+def main(argv, => Timer,
          => currentProcess, => currentRuntime, => currentVat,
          => getAddrInfo,
          => makeFileResource,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
-    def [=> makeIRCClient, => connectIRCClient] := ::"import".script("lib/irc/client",
-        [=> &&Timer])
-    def [=> makeMonteParser] | _ := ::"import".script("lib/parsers/monte",
-                                                  [=> &&bench])
-    def [=> makePumpTube :DeepFrozen,
-         => makeUTF8DecodePump :DeepFrozen,
-         => makeUTF8EncodePump :DeepFrozen,
-         => makeSplitPump :DeepFrozen,
-         => chain :DeepFrozen] | _ := ::"import"("lib/tubes", [=> unittest])
-    def [=> JSON :DeepFrozen] | _ := ::"import"("lib/json", [=> unittest])
-    def [=> UTF8 :DeepFrozen] | _ := ::"import".script("lib/codec/utf8",
-                                                   [=> &&unittest])
 
     def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
 
@@ -121,7 +120,7 @@ def main(=> bench, => unittest, => Timer,
         else:
             sayer(`But $name's list is empty.`)
 
-    def config := parseArguments(currentProcess.getArguments())
+    def config := parseArguments(argv)
 
     def webStarter():
         def [=> tag] | _ := ::"import".script("lib/http/tag")
@@ -281,7 +280,7 @@ def main(=> bench, => unittest, => Timer,
         if (address == null):
             traceln("Couldn't choose an address to connect to!")
 
-        def client := makeIRCClient(handler)
+        def client := makeIRCClient(handler, Timer)
         def ep := makeTCP4ClientEndpoint(address, 6667)
         connectIRCClient(client, ep)
 

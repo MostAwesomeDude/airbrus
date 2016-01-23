@@ -9,7 +9,7 @@ stdenv.mkDerivation {
     installPhase = ''
       mkdir -p $out/bin
       cp airbrus.mast $out/
-      echo "${typhonVm}/mt-typhon -l ${mast}/mast $out/airbrus \"\$@\"" > $out/bin/airbrus
+      echo "${typhonVm}/mt-typhon -l ${mast}/mast -l ${out}  ${mast}/loader airbrus \"\$@\"" > $out/bin/airbrus
       chmod +x $out/bin/airbrus
       '';
     doCheck = false;
