@@ -1,3 +1,4 @@
+import "lib/codec/utf8" =~ [=> UTF8 :DeepFrozen]
 import "lib/irc/client" =~ [=> makeIRCClient :DeepFrozen, => connectIRCClient :DeepFrozen]
 import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
                        => makeUTF8DecodePump :DeepFrozen,
@@ -7,10 +8,6 @@ import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
 import "lib/json" =~ [=> JSON :DeepFrozen]
 import "unittest" =~ [=> unittest]
 exports (main)
-
-def [=> UTF8 :DeepFrozen] | _ := ::"import".script("lib/codec/utf8",
-                                                   [=> &&unittest])
-
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
     for addr in addrs:
@@ -72,6 +69,7 @@ def main(argv, => Timer,
          => getAddrInfo,
          => makeFileResource,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
+         => packageLoader,
          => unsealException) as DeepFrozen:
 
     def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
@@ -123,14 +121,13 @@ def main(argv, => Timer,
     def config := parseArguments(argv)
 
     def webStarter():
-        def [=> tag] | _ := ::"import".script("lib/http/tag")
         def [
             => makeDebugResource,
             => makeResource,
             => makeResourceApp,
             => notFoundResource,
             => smallBody,
-        ] | _ := ::"import"("lib/http/resource")
+        ] | _ := packageLoader."import"("lib/http/resource")
 
         def rootWorker(resource, verb, headers):
             return smallBody(`<ul>
@@ -140,7 +137,7 @@ def main(argv, => Timer,
         def root := makeResource(rootWorker,
                                  ["debug" => makeDebugResource(currentRuntime)])
 
-        def [=> makeHTTPEndpoint] | _ := ::"import".script("lib/http/server")
+        def [=> makeHTTPEndpoint] | _ := packageLoader."import"("lib/http/server")
         def app := makeResourceApp(root)
         def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
         endpoint.listen(app)
@@ -153,7 +150,7 @@ def main(argv, => Timer,
     def crypt := currentRuntime.getCrypt()
     def baseEnvironmentBindings := safeScope | [
         # Superpowers.
-        => &&::"import", => &&getAddrInfo,
+        => &&getAddrInfo,
         # Crypto services. Totally safe on IRC; the worst they can do is
         # gently munch on the OS's entropy pool.
         => &&crypt,
