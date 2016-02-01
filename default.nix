@@ -1,4 +1,4 @@
-{ system ? builtins.currentSystem, typhonPackage ? ~/typhon/default.nix }:
+{ system ? builtins.currentSystem, typhonPackage ? ~/Projects/typhon/default.nix }:
 let
   nixpkgs = import <nixpkgs> { inherit system; };
   typhon = nixpkgs.callPackage typhonPackage {};
