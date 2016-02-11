@@ -1,5 +1,5 @@
 import "lib/codec/utf8" =~ [=> UTF8 :DeepFrozen]
-import "lib/irc/client" =~ [=> makeIRCClient :DeepFrozen, => connectIRCClient :DeepFrozen]
+import "irc/client" =~ [=> makeIRCClient :DeepFrozen, => connectIRCClient :DeepFrozen]
 import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
                        => makeUTF8DecodePump :DeepFrozen,
                        => makeUTF8EncodePump :DeepFrozen,
