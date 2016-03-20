@@ -1,3 +1,4 @@
+import "lib/codec" =~ [=> composeCodec :DeepFrozen]
 import "lib/codec/utf8" =~ [=> UTF8 :DeepFrozen]
 import "irc/client" =~ [=> makeIRCClient :DeepFrozen, => connectIRCClient :DeepFrozen]
 import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
@@ -6,24 +7,19 @@ import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
                        => makeSplitPump :DeepFrozen,
                        => chain :DeepFrozen]
 import "lib/json" =~ [=> JSON :DeepFrozen]
-import "unittest" =~ [=> unittest]
+import "lib/http/server" =~ [=> makeHTTPEndpoint :DeepFrozen]
+import "lib/http/resource" =~ [=> makeDebugResource :DeepFrozen,
+                               => makeResource :DeepFrozen,
+                               => makeResourceApp :DeepFrozen,
+                               => notFoundResource :DeepFrozen,
+                               => smallBody :DeepFrozen]
+import "lib/help" =~ [=> help :DeepFrozen]
 exports (main)
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
     for addr in addrs:
         if (addr.getFamily() == "INET" && addr.getSocketType() == "stream"):
             return addr.getAddress()
-
-
-def composeCodec(outer :DeepFrozen, inner :DeepFrozen) as DeepFrozen:
-    return object composedCodec as DeepFrozen:
-        "A combination of two codecs."
-
-        to encode(specimen, ej):
-            return outer.encode(inner.encode(specimen, ej), ej)
-
-        to decode(specimen, ej):
-            return inner.decode(outer.decode(specimen, ej), ej)
 
 
 def partition(iterable, pred) as DeepFrozen:
@@ -58,18 +54,18 @@ def parseArguments(var argv) as DeepFrozen:
 
 
 def makeAirbrusHelp(sayer) as DeepFrozen:
-    return def airbrusHelp(specimen):
-        def quoted := M.toQuote(specimen)
-        def iface := specimen._getAllegedInterface()
-        sayer(`Object: $quoted Interface: $iface`)
-
+    return object airbrusHelp:
+        match [verb, args, namedArgs]:
+            def s :Str := M.call(help, verb, args, namedArgs)
+            for line in (s.split("\n")):
+                sayer(line)
+            null
 
 def main(argv, => Timer,
          => currentProcess, => currentRuntime, => currentVat,
          => getAddrInfo,
          => makeFileResource,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
-         => packageLoader,
          => unsealException) as DeepFrozen:
 
     def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
@@ -121,14 +117,6 @@ def main(argv, => Timer,
     def config := parseArguments(argv)
 
     def webStarter():
-        def [
-            => makeDebugResource,
-            => makeResource,
-            => makeResourceApp,
-            => notFoundResource,
-            => smallBody,
-        ] | _ := packageLoader."import"("lib/http/resource")
-
         def rootWorker(resource, verb, headers):
             return smallBody(`<ul>
                 <li><a href="/debug">debug</a></li>
@@ -137,7 +125,6 @@ def main(argv, => Timer,
         def root := makeResource(rootWorker,
                                  ["debug" => makeDebugResource(currentRuntime)])
 
-        def [=> makeHTTPEndpoint] | _ := packageLoader."import"("lib/http/server")
         def app := makeResourceApp(root)
         def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
         endpoint.listen(app)
@@ -210,8 +197,8 @@ def main(argv, => Timer,
         to privmsg(client, user, channel, message):
             if (message =~ `> @text`):
                 # Customize help so that its output doesn't get quoted.
-                def help := makeAirbrusHelp(fn s {client.say(channel, s)})
-                def instanceEnv := ["help" => &&help]
+                def brusHelp := makeAirbrusHelp(fn s {client.say(channel, s)})
+                def instanceEnv := ["help" => &&brusHelp]
                 def userEnv := userEnvironments.fetch(user.getNick(),
                                                       fn {baseEnv | instanceEnv})
                 def sayer(s :Str):

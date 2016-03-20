@@ -4,7 +4,7 @@
     "entrypoint": "airbrus",
     "dependencies": {
         "IRC": {
-            "url": "https://github.com/washort/mt-irc"
+            "url": "https://github.com/monte-language/mt-irc"
         }
     }
 }
