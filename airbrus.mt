@@ -61,17 +61,20 @@ def makeAirbrusHelp(sayer) as DeepFrozen:
                 sayer(line)
             null
 
+
+def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
+
+
+def makeLineTube() as DeepFrozen:
+    return makePumpTube(makeSplitPump(b`$\n`))
+
+
 def main(argv, => Timer,
          => currentProcess, => currentRuntime, => currentVat,
          => getAddrInfo,
          => makeFileResource,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
          => unsealException) as DeepFrozen:
-
-    def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
-
-    def makeLineTube() as DeepFrozen:
-        return makePumpTube(makeSplitPump(b`$\n`))
 
     var todoMap :Map[Str, List[Str]] := [].asMap()
     def todoFile := makeFileResource("todo.list")
