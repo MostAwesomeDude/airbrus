@@ -17,7 +17,7 @@ import "lib/help" =~ [=> help :DeepFrozen]
 exports (main)
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
-    for addr in addrs:
+    for addr in (addrs):
         if (addr.getFamily() == "INET" && addr.getSocketType() == "stream"):
             return addr.getAddress()
 
@@ -25,7 +25,7 @@ def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
 def partition(iterable, pred) as DeepFrozen:
     def yes := [].diverge()
     def no := [].diverge()
-    for i in iterable:
+    for i in (iterable):
         pred(i).pick(yes, no).push(i)
     return [yes.snapshot(), no.snapshot()]
 
@@ -96,7 +96,7 @@ def main(argv, => Timer,
             sayer(`$name has nothing to do.`)
         else:
             sayer(`$name should do:`)
-            for item in items:
+            for item in (items):
                 sayer(`• $item`)
     def removeTodoItem(name, needle, sayer):
         def items := todoMap.fetch(name, fn {[]})
@@ -112,7 +112,7 @@ def main(argv, => Timer,
                     sayer(`Crossed off "$single". Good work!`)
                 match several:
                     sayer(`I found a couple things; which one did you mean?`)
-                    for item in several:
+                    for item in (several):
                         sayer(`• $item`)
         else:
             sayer(`But $name's list is empty.`)
@@ -179,7 +179,7 @@ def main(argv, => Timer,
             return nick
 
         to loggedIn(client):
-            for channel in config.channels():
+            for channel in (config.channels()):
                 traceln(`Joining #$channel...`)
                 client.join(`#$channel`)
 
@@ -205,7 +205,7 @@ def main(argv, => Timer,
                 def userEnv := userEnvironments.fetch(user.getNick(),
                                                       fn {baseEnv | instanceEnv})
                 def sayer(s :Str):
-                    for line in s.split("\n"):
+                    for line in (s.split("\n")):
                         client.say(channel, line)
                 def newEnv := performEval(text, userEnv, sayer)
                 userEnvironments[user.getNick()] := newEnv
