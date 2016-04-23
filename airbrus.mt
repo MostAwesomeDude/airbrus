@@ -1,6 +1,7 @@
 import "lib/codec" =~ [=> composeCodec :DeepFrozen]
 import "lib/codec/utf8" =~ [=> UTF8 :DeepFrozen]
 import "irc/client" =~ [=> makeIRCClient :DeepFrozen, => connectIRCClient :DeepFrozen]
+import "lib/entropy/entropy" =~ [=> makeEntropy :DeepFrozen]
 import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
                        => makeUTF8DecodePump :DeepFrozen,
                        => makeUTF8EncodePump :DeepFrozen,
@@ -59,7 +60,11 @@ def makeAirbrusHelp(sayer) as DeepFrozen:
             def s :Str := M.call(help, verb, args, namedArgs)
             for line in (s.split("\n")):
                 sayer(line)
-            null
+
+
+def makeDie(entropy) as DeepFrozen:
+    return def roll1d20():
+        return 1 + entropy.nextInt(20)
 
 
 def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
@@ -138,6 +143,8 @@ def main(argv, => Timer,
     def nick :Str := config.nick()
 
     def crypt := currentRuntime.getCrypt()
+    def d20 := makeDie(makeEntropy(crypt.makeSecureEntropy()))
+
     def baseEnvironmentBindings := safeScope | [
         # Superpowers.
         => &&getAddrInfo,
@@ -257,6 +264,15 @@ def main(argv, => Timer,
                             name := user.getNick()
                         removeTodoItem(name, needle,
                                        fn s {client.say(channel, s)})
+
+                    match `@stat check`:
+                        def roll := d20()
+                        def luck := if (roll == 20) {
+                            " ☘"
+                        } else if (roll == 1) {
+                            " ☠"
+                        } else { "" }
+                        client.say(channel, `$stat check: $roll$luck`)
 
                     match _:
                         client.say(channel, `${user.getNick()}: I don't understand.`)
