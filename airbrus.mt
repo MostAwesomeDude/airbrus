@@ -15,6 +15,7 @@ import "lib/http/resource" =~ [=> makeDebugResource :DeepFrozen,
                                => notFoundResource :DeepFrozen,
                                => smallBody :DeepFrozen]
 import "lib/help" =~ [=> help :DeepFrozen]
+import "lib/words" =~ [=> Word :DeepFrozen]
 exports (main)
 
 def chooseAddress(addrs) :NullOk[Bytes] as DeepFrozen:
@@ -152,7 +153,7 @@ def main(argv, => Timer,
         # gently munch on the OS's entropy pool.
         => &&crypt,
         # Some safe conveniences.
-        => &&UTF8, => &&JSON,
+        => &&UTF8, => &&JSON, => &&Word,
     ]
 
     def baseEnv := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
