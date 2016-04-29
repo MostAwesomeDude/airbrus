@@ -146,7 +146,7 @@ def main(argv, => Timer,
     def crypt := currentRuntime.getCrypt()
     def d20 := makeDie(makeEntropy(crypt.makeSecureEntropy()))
 
-    def baseEnvironmentBindings := safeScope | [
+    def baseEnv := safeScope | [
         # Superpowers.
         => &&getAddrInfo,
         # Crypto services. Totally safe on IRC; the worst they can do is
@@ -155,8 +155,6 @@ def main(argv, => Timer,
         # Some safe conveniences.
         => &&UTF8, => &&JSON, => &&Word,
     ]
-
-    def baseEnv := [for `&&@name` => binding in (baseEnvironmentBindings) name => binding]
 
     def performEval(text, env, sayer):
         try:
@@ -209,7 +207,7 @@ def main(argv, => Timer,
             if (message =~ `> @text`):
                 # Customize help so that its output doesn't get quoted.
                 def brusHelp := makeAirbrusHelp(fn s {client.say(channel, s)})
-                def instanceEnv := ["help" => &&brusHelp]
+                def instanceEnv := ["&&help" => &&brusHelp]
                 def userEnv := userEnvironments.fetch(user.getNick(),
                                                       fn {baseEnv | instanceEnv})
                 def sayer(s :Str):
