@@ -5,6 +5,9 @@
     "dependencies": {
         "IRC": {
             "url": "https://github.com/monte-language/mt-irc"
+        },
+        "http": {
+            "url": "https://github.com/monte-language/mt-http"
         }
     }
 }

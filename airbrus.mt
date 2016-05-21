@@ -8,12 +8,12 @@ import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
                        => makeSplitPump :DeepFrozen,
                        => chain :DeepFrozen]
 import "lib/json" =~ [=> JSON :DeepFrozen]
-import "lib/http/server" =~ [=> makeHTTPEndpoint :DeepFrozen]
-import "lib/http/resource" =~ [=> makeDebugResource :DeepFrozen,
-                               => makeResource :DeepFrozen,
-                               => makeResourceApp :DeepFrozen,
-                               => notFoundResource :DeepFrozen,
-                               => smallBody :DeepFrozen]
+import "http/server" =~ [=> makeHTTPEndpoint :DeepFrozen]
+import "http/resource" =~ [=> makeDebugResource :DeepFrozen,
+                           => makeResource :DeepFrozen,
+                           => makeResourceApp :DeepFrozen,
+                           => notFoundResource :DeepFrozen,
+                           => smallBody :DeepFrozen]
 import "lib/help" =~ [=> help :DeepFrozen]
 import "lib/words" =~ [=> Word :DeepFrozen]
 exports (main)
