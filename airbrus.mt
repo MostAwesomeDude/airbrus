@@ -8,12 +8,6 @@ import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
                        => makeSplitPump :DeepFrozen,
                        => chain :DeepFrozen]
 import "lib/json" =~ [=> JSON :DeepFrozen]
-import "http/server" =~ [=> makeHTTPEndpoint :DeepFrozen]
-import "http/resource" =~ [=> makeDebugResource :DeepFrozen,
-                           => makeResource :DeepFrozen,
-                           => makeResourceApp :DeepFrozen,
-                           => notFoundResource :DeepFrozen,
-                           => smallBody :DeepFrozen]
 import "lib/help" =~ [=> help :DeepFrozen]
 import "lib/words" =~ [=> Word :DeepFrozen]
 exports (main)
@@ -76,7 +70,7 @@ def makeLineTube() as DeepFrozen:
 
 
 def main(argv, => Timer,
-         => currentProcess, => currentRuntime, => currentVat,
+         => currentProcess, => currentRuntime,
          => getAddrInfo,
          => makeFileResource,
          => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
@@ -124,22 +118,6 @@ def main(argv, => Timer,
             sayer(`But $name's list is empty.`)
 
     def config := parseArguments(argv)
-
-    def webStarter():
-        def rootWorker(resource, verb, headers):
-            return smallBody(`<ul>
-                <li><a href="/debug">debug</a></li>
-            </ul>`)
-
-        def root := makeResource(rootWorker,
-                                 ["debug" => makeDebugResource(currentRuntime)])
-
-        def app := makeResourceApp(root)
-        def endpoint := makeHTTPEndpoint(makeTCP4ServerEndpoint(8080))
-        endpoint.listen(app)
-
-    def webVat := currentVat.sprout(`HTTP server`, 1000 ** 3)
-    webVat.seed(webStarter)
 
     def nick :Str := config.nick()
 
