@@ -1,6 +1,6 @@
 import "lib/codec" =~ [=> composeCodec :DeepFrozen]
 import "lib/codec/utf8" =~ [=> UTF8 :DeepFrozen]
-import "irc/client" =~ [=> makeIRCClient :DeepFrozen, => connectIRCClient :DeepFrozen]
+import "irc/client" =~ [=> makeIRCConnector :DeepFrozen]
 import "lib/entropy/entropy" =~ [=> makeEntropy :DeepFrozen]
 import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
                        => makeUTF8DecodePump :DeepFrozen,
@@ -260,8 +260,8 @@ def main(argv, => Timer,
         if (address == null):
             traceln("Couldn't choose an address to connect to!")
 
-        def client := makeIRCClient(handler, Timer)
+        def connector := makeIRCConnector(handler, Timer)
         def ep := makeTCP4ClientEndpoint(address, 6667)
-        connectIRCClient(client, ep)
+        def client := connector.connect(ep)
 
     return 0
