@@ -136,7 +136,8 @@ def main(argv, => Timer,
 
     def performEval(text, env, sayer):
         try:
-            def [result, newEnv] := eval.evalToPair(text, env)
+            def [result, newEnv] := eval.evalToPair(text, env,
+                                                    "inRepl" => true)
             # If the result is eventual, then don't say it yet, but set up a
             # callback for when it resolves.
             if (Ref.isResolved(result)):
