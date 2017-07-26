@@ -94,8 +94,7 @@ def make_giftExchange() :Any as DeepFrozen:
         if (givers.fetch(giver, pass_duck) != duck):
             def gifts := givers[giver]
             if (gifts.fetch(giftName, pass_duck) != duck):
-                resolver.resolve(gifts.fetch(giftName))
-                gifts[giftName] := Null
+                resolver.resolve(gifts.fetch(giftName)
                 return promise
         if (wanters.fetch(acceptor, pass_duck) != duck):
             def wants := wanters[acceptor]
