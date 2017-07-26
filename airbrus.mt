@@ -118,9 +118,6 @@ def make_giftExchange() :Any as DeepFrozen:
   
      return giftExchange_interface_maker
 
-
-def make_giftExchange_interface := make_giftExchange()
-
 def main(argv, => Timer,
          => currentProcess, => currentRuntime,
          => getAddrInfo,
@@ -137,6 +134,8 @@ def main(argv, => Timer,
         when (p) ->
             todoMap := UTF8JSON.decode(p, null)
     getTodo()
+    
+    def make_giftExchange_interface := make_giftExchange()
 
     def putTodoItem(nick, item):
         def items := todoMap.fetch(nick, fn {[]}).with(item)
