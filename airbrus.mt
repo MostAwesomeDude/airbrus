@@ -75,10 +75,10 @@ def make_giftExchange() :Any as DeepFrozen:
     def pass_duck () :Any :
         return duck
         
-    def give(giver :Str, recipiant :Str, giftName :Str, gift :Any) :Void :
+    def give(giver :Str, acceptor :Str, giftName :Str, gift :Any) :Void :
         def giftBox := gift  # Allways wrap your presents! (For when gifts are promises)
-        if (wanters.fetch(recipiant, pass_duck) != duck):
-            def wants := wanters[recipiant]
+        if (wanters.fetch(acceptor, pass_duck) != duck):
+            def wants := wanters[acceptor]
             if (wants.fetch(giftName, pass_duck) != duck):
               wants.fetch(giftName)[1].resolve(&giftBox)
               return
@@ -88,7 +88,7 @@ def make_giftExchange() :Any as DeepFrozen:
         gifts[giftName] := &giftBox
         return
   
-    def accept(recipiant :Str, giver :Str, giftName :Str) :Any :
+    def accept(acceptor :Str, giver :Str, giftName :Str) :Any :
         def promres := Ref.make_promise()
         var [promise, resolver] := promres
         if (givers.fetch(giver, pass_duck) != duck):
@@ -97,23 +97,23 @@ def make_giftExchange() :Any as DeepFrozen:
                 resolver.resolve(gifts.fetch(giftName))
                 gifts[giftName] := Null
                 return promise
-        if (wanters.fetch(recipiant, pass_duck) != duck):
-            def wants := wanters[recipiant]
+        if (wanters.fetch(acceptor, pass_duck) != duck):
+            def wants := wanters[acceptor]
             if (wants.fetch(giftName, pass_duck) != duck):
                 [promise, resolver] = wants.fetch(giftName)
                 return promise
-        if (wanters.fetch(recipiant, pass_duck) == duck):
-            wanters.set(recipiant, [].asMap().diverge())
-        def wants := wanters.fetch(recipiant)
+        if (wanters.fetch(acceptor, pass_duck) == duck):
+            wanters.set(acceptor, [].asMap().diverge())
+        def wants := wanters.fetch(acceptor)
         wants.set(giftName, promres)
         return promise
   
     def giftExchange_interface_maker(nickname :Str) :Any :
         object GEI:
             """Your interface to the giftExchange"""
-            to give(recipiant :Str, giftName :Str, gift :Any) :Void :
-                """signiture: give(recipiant :Str, giftName :Str, gift :Any) :Void"""
-                give(nickname, recipiant, giftName, gift)
+            to give(acceptor :Str, giftName :Str, gift :Any) :Void :
+                """signiture: give(acceptor :Str, giftName :Str, gift :Any) :Void"""
+                give(nickname, acceptor, giftName, gift)
                 return
             to accept(giver :Str, giftName :Str) :Any :
                 """signiture: accept(giver :Str, giftName :Str) :Any"""
