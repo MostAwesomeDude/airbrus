@@ -68,6 +68,73 @@ def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
 def makeLineTube() as DeepFrozen:
     return makePumpTube(makeSplitPump(b`$\n`))
 
+def make_giftExchange() as DeepFrozen :Any {
+  def givers  := [].asMap().diverge()
+  def wanters := [].asMap().diverge()
+  object duck {}
+  def pass_duck () :Any {
+    return duck
+  }
+  
+  def give(giver :Str, recipiant :Str, giftName :Str, gift :Any) :Void {
+    def giftBox := gift  # Allways wrap your presents! (For when gifts are promises)
+    if (wanters.fetch(recipiant, pass_duck) != duck) {
+      def wants := wanters[recipiant]
+      if (wants.fetch(giftName, pass_duck) != duck) {
+        wants.fetch(giftName)[1].resolve(&giftBox)
+        return
+      }
+    }
+    if (givers.fetch(giver, pass_duck) == duck) {
+      givers[giver] := [].asMap().diverge()
+    }
+    def gifts := givers[giver]
+    gifts[giftName] := &giftBox
+  }
+  def accept(recipiant :Str, giver :Str, giftName :Str) :Any {
+    def promres := Ref.make_promise()
+    var [promise, resolver] := promres
+    if (givers.fetch(giver, pass_duck) != duck) {
+      def gifts := givers[giver]
+      if (gifts.fetch(giftName, pass_duck) != duck) {
+        resolver.resolve(gifts.fetch(giftName))
+        gifts[giftName] := Null
+        return promise
+      }
+    }
+    if (wanters.fetch(recipiant, pass_duck) != duck) {
+      def wants := wanters[recipiant]
+      if (wants.fetch(giftName, pass_duck) != duck) {
+        [promise, resolver] = wants.fetch(giftName)
+        return promise
+      }
+    }
+    if (wanters.fetch(recipiant, pass_duck) == duck) {
+      wanters.set(recipiant, [].asMap().diverge())
+    }
+    def wants := wanters.fetch(recipiant)
+    wants.set(giftName, promres)
+    return promise
+  }
+  
+  def giftExchange_interface_maker(nickname :Str) :Any {
+    object GEI {
+      """Your interface to the giftExchange"""
+      to give(recipiant :Str, giftName :Str, gift :Any) :Void {
+        """signiture: give(recipiant :Str, giftName :Str, gift :Any) :Void"""
+        give(nickname, recipiant, giftName, gift)
+      }
+      to accept(giver :Str, giftName :Str) :Any {
+        """signiture: accept(giver :Str, giftName :Str) :Any"""
+        return accept(nickname, giver, giftName)
+      }
+    }
+    return GEI
+  }
+  return giftExchange_interface_maker
+}
+
+def make_giftExchange_interface := make_giftExchange()
 
 def main(argv, => Timer,
          => currentProcess, => currentRuntime,
@@ -188,7 +255,7 @@ def main(argv, => Timer,
                 def brusHelp := makeAirbrusHelp(fn s {client.say(channel, s)})
                 def instanceEnv := ["&&help" => &&brusHelp]
                 def userEnv := userEnvironments.fetch(user.getNick(),
-                                                      fn {baseEnv | instanceEnv})
+                                                      fn { return baseEnv | instanceEnv | ["giftExchange" => make_giftExchange_interface(user.getNick())] })
                 def sayer(s :Str):
                     for line in (s.split("\n")):
                         client.say(channel, line)
