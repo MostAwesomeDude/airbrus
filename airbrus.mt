@@ -71,18 +71,15 @@ def makeLineTube() as DeepFrozen:
 def make_giftExchange() :Any as DeepFrozen:
     def givers  := [].asMap().diverge()
     def wanters := [].asMap().diverge()
-    object duck {}
-    def pass_duck () :Any :
-        return duck
         
     def give(giver :Str, acceptor :Str, giftName :Str, gift :Any) :Void :
         def giftBox := gift  # Allways wrap your presents! (For when gifts are promises)
-        if (wanters.fetch(acceptor, pass_duck) != duck):
+        if (wanters.contains(acceptor):
             def wants := wanters[acceptor]
-            if (wants.fetch(giftName, pass_duck) != duck):
+            if (wants.contains(giftName)):
               wants.fetch(giftName)[1].resolve(&giftBox)
               return
-        if (givers.fetch(giver, pass_duck) == duck):
+        if (!givers.contains(giver)):
             givers[giver] := [].asMap().diverge()
         def gifts := givers[giver]
         gifts[giftName] := &giftBox
@@ -91,17 +88,17 @@ def make_giftExchange() :Any as DeepFrozen:
     def accept(acceptor :Str, giver :Str, giftName :Str) :Any :
         def promres := Ref.make_promise()
         var [promise, resolver] := promres
-        if (givers.fetch(giver, pass_duck) != duck):
+        if (givers.contains(giver)):
             def gifts := givers[giver]
-            if (gifts.fetch(giftName, pass_duck) != duck):
+            if (gifts.contains(giftName)):
                 resolver.resolve(gifts.fetch(giftName)
                 return promise
-        if (wanters.fetch(acceptor, pass_duck) != duck):
+        if (wanters.contains(acceptor)):
             def wants := wanters[acceptor]
-            if (wants.fetch(giftName, pass_duck) != duck):
+            if (wants.contains(giftName)):
                 [promise, resolver] = wants.fetch(giftName)
                 return promise
-        if (wanters.fetch(acceptor, pass_duck) == duck):
+        if (!wanters.contains(acceptor)):
             wanters.set(acceptor, [].asMap().diverge())
         def wants := wanters.fetch(acceptor)
         wants.set(giftName, promres)
