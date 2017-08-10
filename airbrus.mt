@@ -2,11 +2,6 @@ import "lib/codec" =~ [=> composeCodec :DeepFrozen]
 import "lib/codec/utf8" =~ [=> UTF8 :DeepFrozen]
 import "irc/client" =~ [=> makeIRCConnector :DeepFrozen]
 import "lib/entropy/entropy" =~ [=> makeEntropy :DeepFrozen]
-import "lib/tubes" =~ [=> makePumpTube :DeepFrozen,
-                       => makeUTF8DecodePump :DeepFrozen,
-                       => makeUTF8EncodePump :DeepFrozen,
-                       => makeSplitPump :DeepFrozen,
-                       => chain :DeepFrozen]
 import "lib/json" =~ [=> JSON :DeepFrozen]
 import "lib/help" =~ [=> help :DeepFrozen]
 import "lib/words" =~ [=> Word :DeepFrozen]
@@ -65,15 +60,11 @@ def makeDie(entropy) as DeepFrozen:
 def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
 
 
-def makeLineTube() as DeepFrozen:
-    return makePumpTube(makeSplitPump(b`$\n`))
-
-
 def main(argv, => Timer,
-         => currentProcess, => currentRuntime,
+         => currentRuntime,
          => getAddrInfo,
          => makeFileResource,
-         => makeTCP4ClientEndpoint, => makeTCP4ServerEndpoint,
+         => makeTCP4ClientEndpoint,
          => unsealException) as DeepFrozen:
 
     var todoMap :Map[Str, List[Str]] := [].asMap()
@@ -263,6 +254,6 @@ def main(argv, => Timer,
 
         def connector := makeIRCConnector(handler, Timer)
         def ep := makeTCP4ClientEndpoint(address, 6667)
-        def client := connector.connect(ep)
+        connector.connect(ep)
 
     return 0
