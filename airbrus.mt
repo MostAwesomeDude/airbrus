@@ -68,13 +68,13 @@ def UTF8JSON :DeepFrozen := composeCodec(UTF8, JSON)
 def makeLineTube() as DeepFrozen:
     return makePumpTube(makeSplitPump(b`$\n`))
 
-def make_giftExchange() :Any as DeepFrozen:
+def makeGiftExchange() :Any as DeepFrozen:
     def givers  := [].asMap().diverge()
     def wanters := [].asMap().diverge()
         
     def give(giver :Str, acceptor :Str, giftName :Str, gift :Any) :Void :
-        def giftBox := gift  # Allways wrap your presents! (For when gifts are promises)
-        if (wanters.contains(acceptor):
+        def giftBox := _makeFinalSlot(null, gift, null)  # Allways wrap your presents! (For when gifts are promises)
+        if (wanters.contains(acceptor)):
             def wants := wanters[acceptor]
             if (wants.contains(giftName)):
               wants.fetch(giftName)[1].resolve(&giftBox)
@@ -86,8 +86,7 @@ def make_giftExchange() :Any as DeepFrozen:
         return
   
     def accept(acceptor :Str, giver :Str, giftName :Str) :Any :
-        def promres := Ref.make_promise()
-        var [promise, resolver] := promres
+        def [var promise, var resolver] := Ref.promise()
         if (givers.contains(giver)):
             def gifts := givers[giver]
             if (gifts.contains(giftName)):
@@ -96,7 +95,7 @@ def make_giftExchange() :Any as DeepFrozen:
         if (wanters.contains(acceptor)):
             def wants := wanters[acceptor]
             if (wants.contains(giftName)):
-                [promise, resolver] = wants.fetch(giftName)
+                [promise, resolver] := wants.fetch(giftName)
                 return promise
         if (!wanters.contains(acceptor)):
             wanters.set(acceptor, [].asMap().diverge())
