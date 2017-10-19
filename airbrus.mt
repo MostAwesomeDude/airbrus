@@ -77,12 +77,12 @@ def makeGiftExchange() :Any as DeepFrozen:
         if (wanters.contains(acceptor)):
             def wants := wanters[acceptor]
             if (wants.contains(giftName)):
-              wants.fetch(giftName)[1].resolve(&giftBox)
+              wants.fetch(giftName)[1].resolve(giftBox)
               return
         if (!givers.contains(giver)):
             givers[giver] := [].asMap().diverge()
         def gifts := givers[giver]
-        gifts[giftName] := &giftBox
+        gifts[giftName] := giftBox
         return
   
     def accept(acceptor :Str, giver :Str, giftName :Str) :Any :
@@ -134,7 +134,7 @@ def main(argv, => Timer,
             todoMap := UTF8JSON.decode(p, null)
     getTodo()
     
-    def make_giftExchange_interface := make_giftExchange()
+    def makeGiftExchange_interface := makeGiftExchange()
 
     def putTodoItem(nick, item):
         def items := todoMap.fetch(nick, fn {[]}).with(item)
