@@ -90,7 +90,7 @@ def makeGiftExchange() :Any as DeepFrozen:
         if (givers.contains(giver)):
             def gifts := givers[giver]
             if (gifts.contains(giftName)):
-                resolver.resolve(gifts.fetch(giftName)
+                resolver.resolve(gifts.fetch(giftName))
                 return promise
         if (wanters.contains(acceptor)):
             def wants := wanters[acceptor]
