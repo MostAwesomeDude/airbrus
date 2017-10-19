@@ -238,7 +238,7 @@ def main(argv, => Timer,
                 def brusHelp := makeAirbrusHelp(fn s {client.say(channel, s)})
                 def instanceEnv := ["&&help" => &&brusHelp]
                 def userEnv := userEnvironments.fetch(user.getNick(),
-                                                      fn { return baseEnv | instanceEnv | ["giftExchange" => make_giftExchange_interface(user.getNick())] })
+                                                      fn { baseEnv | instanceEnv | ["giftExchange" => make_giftExchange_interface(user.getNick())] })
                 def sayer(s :Str):
                     for line in (s.split("\n")):
                         client.say(channel, line)
