@@ -101,7 +101,7 @@ def makeGiftExchange() :Any as DeepFrozen:
                 if (wanters.contains(acceptor)):
                     def wants := wanters[acceptor]
                     if (wants.contains(giftName)):
-                        promise, resolver := wants.fetch(giftName)
+                        promise := wants.fetch(giftName)[0]
                         return promise
                 if (!wanters.contains(acceptor)):
                     wanters.set(acceptor, [].asMap().diverge())
