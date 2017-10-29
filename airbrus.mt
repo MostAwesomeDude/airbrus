@@ -64,44 +64,40 @@ def makeGiftExchange() :Any as DeepFrozen:
     def givers  := [].asMap().diverge()
     def wanters := [].asMap().diverge()
   
-    def giftExchange_interface_maker(nickname :Str) :Any :
-        object GEI:
-            """Your interface to the giftExchange"""
-            to give(acceptor :Str, giftName :Str, gift :Any) :Void :
-                """signiture: give(acceptor :Str, giftName :Str, gift :Any) :Void"""
-                def giver := nickname # purely for documentive purpose
-                def giftBox := _makeFinalSlot(null, gift, null)  # Allways wrap your presents! (For when gifts are promises)
+    return def giftExchange(nickname :Str) :Any:
+        if (!givers.contains(nickname)):
+            givers[nickname] := [].asMap().diverge()
+        def gifts := givers[nickname]
+        if (!wanters.contains(nickname)):
+            wanters[nickname] := [].asMap().diverge()
+        def wants := wanters[nickname]
+
+        object gifter:
+            "
+            To give, `.give(nick, giftName, gift)`.
+            To receive, `.accept(nick, giftName)`.
+            "
+
+            to give(acceptor :Str, giftName :Str, gift :Any) :Void:
                 if (wanters.contains(acceptor)):
                     def wants := wanters[acceptor]
                     if (wants.contains(giftName)):
-                      wants.fetch(giftName)[1].resolve(giftBox)
-                      return
-                if (!givers.contains(giver)):
-                    givers[giver] := [].asMap().diverge()
-                def gifts := givers[giver]
-                gifts[giftName] := giftBox
-                return
-            to accept(giver :Str, giftName :Str) :Any :
-                """signiture: accept(giver :Str, giftName :Str) :Any"""
-                def acceptor := nickname # purely for documentive purpose
-                def [var promise, var resolver] := Ref.promise()
+                        wants[giftName][1].resolve(&gift)
+                        return
+                gifts[giftName] := &gift
+
+            to accept(giver :Str, giftName :Str) :Any:
+                def [promise, resolver] := Ref.promise()
                 if (givers.contains(giver)):
                     def gifts := givers[giver]
                     if (gifts.contains(giftName)):
-                        resolver.resolve(gifts.fetch(giftName))
-                        return promise
-                if (wanters.contains(acceptor)):
-                    def wants := wanters[acceptor]
-                    if (wants.contains(giftName)):
-                        promise := wants.fetch(giftName)[0]
-                        return promise
-                if (!wanters.contains(acceptor)):
-                    wanters.set(acceptor, [].asMap().diverge())
-                def wants := wanters.fetch(acceptor)
-                wants.set(giftName, promres)
+                        return gifts[giftName]
+                if (wants.contains(giftName)):
+                    return wants[giftName][0]
+                wants[giftName] := [promise, resolver]
                 return promise
-        return GEI
-     return giftExchange_interface_maker
+
+        return &&gifter
 
 def main(argv, => Timer,
          => currentRuntime,
@@ -120,7 +116,7 @@ def main(argv, => Timer,
             todoMap := UTF8JSON.decode(p, null)
     getTodo()
     
-    def makeGiftExchange_interface := makeGiftExchange()
+    def giftExchange := makeGiftExchange()
 
     def putTodoItem(nick, item):
         def items := todoMap.fetch(nick, fn {[]}).with(item)
@@ -222,9 +218,12 @@ def main(argv, => Timer,
             if (message =~ `> @text`):
                 # Customize help so that its output doesn't get quoted.
                 def brusHelp := makeAirbrusHelp(fn s {client.say(channel, s)})
-                def instanceEnv := ["&&help" => &&brusHelp]
+                def instanceEnv := [
+                    "&&help" => &&brusHelp,
+                    "&&giftExchange" => giftExchange(user.getNick()),
+                ]
                 def userEnv := userEnvironments.fetch(user.getNick(),
-                                                      fn { baseEnv | instanceEnv | ["giftExchange" => make_giftExchange_interface(user.getNick())] })
+                                                      fn { baseEnv | instanceEnv })
                 def sayer(s :Str):
                     for line in (s.split("\n")):
                         client.say(channel, line)
