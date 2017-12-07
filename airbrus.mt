@@ -215,68 +215,67 @@ def main(argv, => Timer,
                     traceln(`Unknown CTCP $message`)
 
         to privmsg(client, user, channel, message):
+            def sayer(s :Str):
+                def msg_target := (channel == nick).pick(user.getNick(), channel);
+                for line in (s.split("\n")):
+                    client.say(msg_target, line)
+
             if (message =~ `> @text`):
                 # Customize help so that its output doesn't get quoted.
-                def brusHelp := makeAirbrusHelp(fn s {client.say(channel, s)})
-                def instanceEnv := [
+                def brusHelp := makeAirbrusHelp(sayer)
+                def instanceEnv := baseEnv | [
                     "&&help" => &&brusHelp,
                     "&&giftExchange" => giftExchange(user.getNick()),
+                    "&&unsafeEnv" => instanceEnv,
                 ]
-                def userEnv := userEnvironments.fetch(user.getNick(),
-                                                      fn { baseEnv | instanceEnv })
-                def sayer(s :Str):
-                    for line in (s.split("\n")):
-                        client.say(channel, line)
+                def userEnv := userEnvironments.fetch(user.getNick(), fn { instanceEnv })
                 def newEnv := performEval(text, userEnv, sayer)
                 userEnvironments[user.getNick()] := newEnv
 
             else if (message =~ `$nick: @action`):
                 switch (action):
                     match `speak`:
-                        client.say(channel, "Hi there!")
+                        sayer("Hi there!")
 
                     match `quit` ? (user.getNick() == "simpson"):
-                        client.say(channel, "Okay, bye!")
+                        sayer("Okay, bye!")
                         client.quit("ma'a tarci pulce")
 
                     match `kill`:
-                        client.say(channel,
-                            `${user.getNick()}: Sorry, I don't know how to do that. Yet.`)
+                        sayer(`${user.getNick()}: Sorry, I don't know how to do that. Yet.`)
+                    
+                    match `reset my eval env`:
+                        userEnviroments[user.getNick()] := null
+                        sayer(`${user.getNick()}: Your eval enviroment has been reset.`)
 
                     match `in @seconds say @utterance`:
                         try:
                             def delta := _makeInt(seconds)
                             when (Timer.fromNow(seconds)) ->
-                                client.say(channel,
-                                    `${user.getNick()}: "$utterance"`)
+                                sayer(`${user.getNick()}: "$utterance"`)
                         catch _:
-                            client.say(channel,
-                                       `${user.getNick()}: Not an integer: $seconds`)
+                            sayer(`${user.getNick()}: Not an integer: $seconds`)
 
                     match `todo`:
-                        showTodoItems(user.getNick(),
-                                      fn s {client.say(channel, s)})
+                        showTodoItems(user.getNick(), sayer)
 
                     match `todo @name`:
                         if (name == ""):
                             # They typed "todo ".
-                            showTodoItems(user.getNick(),
-                                          fn s {client.say(channel, s)})
+                            showTodoItems(user.getNick(), sayer)
                         else:
-                            showTodoItems(name, fn s {client.say(channel, s)})
+                            showTodoItems(name, sayer)
 
                     match `@{var name} should @things`:
                         if (name == "I" || name == "i"):
                             name := user.getNick()
                         putTodoItem(name, things)
-                        client.say(channel,
-                                   `$name: I've put that on your list.`)
+                        sayer(`$name: I've put that on your list.`)
 
                     match `@{var name} did @needle`:
                         if (name == "I" || name == "i"):
                             name := user.getNick()
-                        removeTodoItem(name, needle,
-                                       fn s {client.say(channel, s)})
+                        removeTodoItem(name, needle, sayer)
 
                     match `@stat check`:
                         def roll := d20()
@@ -285,10 +284,10 @@ def main(argv, => Timer,
                         } else if (roll == 1) {
                             " ☠"
                         } else { "" }
-                        client.say(channel, `$stat check: $roll$luck`)
+                        sayer(`$stat check: $roll$luck`)
 
                     match _:
-                        client.say(channel, `${user.getNick()}: I don't understand.`)
+                        sayer(`${user.getNick()}: I don't understand.`)
 
     def addrs := getAddrInfo(b`irc.freenode.net`, b``)
     when (addrs) ->
