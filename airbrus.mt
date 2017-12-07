@@ -223,12 +223,12 @@ def main(argv, => Timer,
             if (message =~ `> @text`):
                 # Customize help so that its output doesn't get quoted.
                 def brusHelp := makeAirbrusHelp(sayer)
-                def instanceEnv := [
+                def instanceEnv := baseEnv | [
                     "&&help" => &&brusHelp,
                     "&&giftExchange" => giftExchange(user.getNick()),
+                    "&&unsafeEnv" => instanceEnv,
                 ]
-                def userEnv := userEnvironments.fetch(user.getNick(),
-                                                      fn { baseEnv | instanceEnv })
+                def userEnv := userEnvironments.fetch(user.getNick(), fn { instanceEnv })
                 def newEnv := performEval(text, userEnv, sayer)
                 userEnvironments[user.getNick()] := newEnv
 
@@ -243,6 +243,10 @@ def main(argv, => Timer,
 
                     match `kill`:
                         sayer(`${user.getNick()}: Sorry, I don't know how to do that. Yet.`)
+                    
+                    match `reset my eval env`:
+                        userEnviroments[user.getNick()] := null
+                        sayer(`${user.getNick()}: Your eval enviroment has been reset.`)
 
                     match `in @seconds say @utterance`:
                         try:
