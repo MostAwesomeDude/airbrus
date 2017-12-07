@@ -225,8 +225,9 @@ def main(argv, => Timer,
                 def userEnv := userEnvironments.fetch(user.getNick(),
                                                       fn { baseEnv | instanceEnv })
                 def sayer(s :Str):
+                    def msg_target := (channel == nick).pick(user.getNick(), channel);
                     for line in (s.split("\n")):
-                        client.say(channel, line)
+                        client.say(msg_target, line)
                 def newEnv := performEval(text, userEnv, sayer)
                 userEnvironments[user.getNick()] := newEnv
 
